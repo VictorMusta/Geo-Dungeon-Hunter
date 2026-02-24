@@ -245,7 +245,7 @@ You must:
 
 # 🧠 Technical Recommendations
 
--   Use Mongo-DB 
+-   Use Mongo-DB [`Setup`](doc/MongoDB_Atlas_Guide_Complet.md)
 -   Use transactions for economy and boss rewards
 -   Use clean architecture or controller/service separation
 -   Write unit tests for:
