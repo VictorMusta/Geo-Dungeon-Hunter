@@ -226,7 +226,6 @@ You must:
 -   Implement the database schema
 -   Implement services and controllers
 -   Handle transactions properly
--   Secure authentication (JWT recommended)
 -   Implement distance calculation logic
 -   Ensure idempotent boss attempts
 -   Add validation & proper HTTP error codes
@@ -246,7 +245,7 @@ You must:
 
 # 🧠 Technical Recommendations
 
--   Use Mongo-DB
+-   Use Mongo-DB 
 -   Use transactions for economy and boss rewards
 -   Use clean architecture or controller/service separation
 -   Write unit tests for:
