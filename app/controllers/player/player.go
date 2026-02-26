@@ -36,11 +36,13 @@ func (s *Player) Get(ctx *gin.Context) {
 	players, err := s.PlayerService.Get(params)
 	if err != nil {
 		common.SendResponse(ctx, http.StatusInternalServerError, models.KnownError(http.StatusInternalServerError, messageTypes.InternalServerError, err))
+		return
 	}
 	totalCount := len(players)
 	if totalCount == 0 {
 		status := http.StatusNotFound
 		common.SendResponse(ctx, status, models.KnownError(status, messageTypes.NotFound, errors.New(" Data not found. ")))
+		return
 	}
 
 	low := params.Offset - 1
@@ -62,6 +64,7 @@ func (s *Player) Get(ctx *gin.Context) {
 	if low > high {
 		status := http.StatusBadRequest
 		common.SendResponse(ctx, status, models.KnownError(status, messageTypes.NotFound, errors.New(" Offset cannot be higher than count. ")))
+		return
 	}
 
 	sendingPlayers := players[low:high]

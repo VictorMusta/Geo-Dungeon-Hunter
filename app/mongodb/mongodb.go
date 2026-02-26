@@ -44,9 +44,6 @@ func OpenMongoDB(dbhost string) (*mongo.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		mc.Disconnect(context.TODO())
-	}()
 
 	// Send a ping to confirm a successful connection
 	if err = mc.Ping(context.TODO(), readpref.Primary()); err != nil {
