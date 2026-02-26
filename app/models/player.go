@@ -5,11 +5,11 @@ import "time"
 type PlayerID string
 
 type Player struct {
-	ID          string    `db:"id"`
-	DisplayName string    `db:"display_name"`
-	Gold        int64     `db:"gold"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
+	CustomID    string    `bson:"customID" json:"id"`
+	DisplayName string    `json:"display_name"`
+	Gold        int64     `json:"gold"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type PlayerResponse struct {

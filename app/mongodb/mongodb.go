@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -36,7 +36,6 @@ func OpenMongoDB(dbhost string) (*mongo.Client, error) {
 
 	// Use the SetServerAPIOptions() method to set the version of the Stable API on the client
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	fmt.Println("dbhost: %s", dbhost)
 	opts := options.Client().ApplyURI(dbhost).SetServerAPIOptions(serverAPI)
 
 	// Create a new client and connect to the server
@@ -65,12 +64,15 @@ func GetInstance() *mongo.Database {
 }
 
 // ToDoc ...
-func ToDoc(v interface{}) (interface{}, error) {
-	var doc interface{}
-
+func ToDoc(v any) (bson.M, error) {
 	data, err := bson.Marshal(v)
-	if err == nil {
-		err = bson.Unmarshal(data, &doc)
+	if err != nil {
+		return nil, err
 	}
-	return doc, err
+
+	var doc bson.M
+	if err := bson.Unmarshal(data, &doc); err != nil {
+		return nil, err
+	}
+	return doc, nil
 }
