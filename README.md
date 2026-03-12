@@ -24,7 +24,7 @@ geographic area.
 
 ### Dungeon
 
--   id
+-   customId
 -   title
 -   description
 -   createdBy (mjId)
@@ -42,7 +42,7 @@ Each boss has a physical location and a difficulty level.
 
 ### BossStep
 
--   id
+-   customId
 -   dungeonId
 -   order (1..n)
 -   name
@@ -65,7 +65,7 @@ A Run represents one player playing one dungeon.
 
 ### Run
 
--   id
+-   customId
 -   dungeonId
 -   playerId
 -   state (active / completed / abandoned)
@@ -83,7 +83,7 @@ A Run represents one player playing one dungeon.
 
 ### Player
 
--   id
+-   customId
 -   displayName
 -   wallet (gold)
 -   inventory (items + quantities)
@@ -95,7 +95,7 @@ A Run represents one player playing one dungeon.
 
 ### ItemDef (catalog)
 
--   id
+-   customId
 -   type (weapon / artifact / consumable)
 -   rarity
 -   stats (JSON)
@@ -112,7 +112,7 @@ A Run represents one player playing one dungeon.
 
 ### Listing
 
--   id
+-   customId
 -   sellerId
 -   itemId
 -   qty
@@ -138,22 +138,12 @@ A Run represents one player playing one dungeon.
 
 -   Client sends `lat/lon` when attempting a boss.
 -   Server validates: `distance <= radiusMeters`.
--   Log:
-    -   attemptId
-    -   deviceTime
-    -   optional GPS accuracy
-
-## Future (V2)
-
--   Play Integrity / DeviceCheck
--   Mock location detection
--   Signed location proofs
 
 ------------------------------------------------------------------------
 
 # 🌐 REST Endpoints (MVP)
 
-## Auth
+## Auth (optionnal)
 
 POST /v1/auth/register\
 POST /v1/auth/login\
