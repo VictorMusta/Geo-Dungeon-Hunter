@@ -85,7 +85,7 @@ func (p *Player) Create(in *models.Player) (*models.Player, error) {
 		return nil, err
 	}
 
-	player.ID = functions.NewUUID()
+	player.CustomID = functions.NewUUID()
 	player.CreatedAt = time.Now()
 
 	_, err = collection.InsertOne(context.TODO(), player)
@@ -111,14 +111,11 @@ func (p *Player) GetByID(id string) (models.Player, error) {
 	queryParams.FilterClause = append(queryParams.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(queryParams)
 	err = collection.FindOne(context.TODO(), filter).Decode(&player)
-	if err == nil {
-		if err == mongo.ErrNoDocuments {
-			log.Error().Err(err).Msg("")
-			return player, err
-		}
-
+	if err != nil {
+		log.Error().Err(err).Msg("")
+		return player, err
 	}
-	return player, err
+	return player, nil
 }
 
 // Update controller to update a Player

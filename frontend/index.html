@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; connect-src http://localhost:8080 https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://*.tile.openstreetmap.org;">
+  <title>Dungeon Quest</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- MENU -->
+  <div id="view-menu" class="view active">
+    <div class="center-col">
+      <h1 class="title">🏰 DUNGEON QUEST 🗡️</h1>
+      <p class="subtitle">Donjons en monde reel</p>
+      <div class="form-box">
+        <label>Ton pseudo</label>
+        <input type="text" id="menu-name" placeholder="Ex: GuerrierFou" />
+        <button class="btn" id="menu-create" style="width:100%; margin-top:10px;">Creer mon personnage</button>
+        <div id="menu-status" class="status-msg"></div>
+      </div>
+      <div id="menu-roles" class="form-box" style="display:none;">
+        <p class="subtitle" style="margin-bottom:14px;">Choisir un role</p>
+        <button class="btn" id="menu-gm" style="width:100%; margin-bottom:8px;">🎲 Game Master</button>
+        <button class="btn btn-secondary" id="menu-player" style="width:100%; margin-bottom:8px;">⚔️ Joueur</button>
+        <button class="btn btn-secondary" id="menu-lb" style="width:100%;">🏆 Leaderboard</button>
+      </div>
+      <p class="footer-text">v1.0 — Go + MongoDB + Electron</p>
+    </div>
+  </div>
+
+  <!-- GM LIST -->
+  <div id="view-gm-list" class="view">
+    <div class="panel-page">
+      <div class="panel-header">
+        <button class="btn btn-secondary btn-sm" id="gml-back">← Menu</button>
+        <h2>🎲 Game Master — Mes Donjons</h2>
+        <button class="btn btn-sm" id="gml-new">+ Nouveau Donjon</button>
+      </div>
+      <div id="gml-list" class="card-list"></div>
+    </div>
+  </div>
+
+  <!-- GM EDIT -->
+  <div id="view-gm-edit" class="view">
+    <div class="split-layout">
+      <aside class="sidebar" id="gme-sidebar">
+        <div class="form-group"><label>Titre</label><input type="text" id="gme-title" /></div>
+        <div class="form-group"><label>Description</label><input type="text" id="gme-desc" /></div>
+        <div class="form-group"><label>Zone</label><input type="text" id="gme-zone" /></div>
+        <div class="btn-row">
+          <button class="btn btn-sm" id="gme-save">💾 Sauver</button>
+          <button class="btn btn-success btn-sm" id="gme-publish">📢 Publier</button>
+        </div>
+        <h3>Boss Steps <span id="gme-count">(0)</span></h3>
+        <div id="gme-steps" class="card-list sidebar-scroll"></div>
+        <button class="btn btn-secondary btn-sm" id="gme-back" style="width:100%; margin-top:8px;">← Retour</button>
+        <div id="gme-msg" class="status-msg"></div>
+      </aside>
+      <div class="map-area">
+        <div id="gme-map" class="leaflet-container-custom"></div>
+        <div class="map-hint">Clic droit sur la carte = ajouter un boss</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER LIST -->
+  <div id="view-player-list" class="view">
+    <div class="panel-page">
+      <div class="panel-header">
+        <button class="btn btn-secondary btn-sm" id="pl-back">← Menu</button>
+        <h2>⚔️ Donjons disponibles</h2>
+        <button class="btn btn-secondary btn-sm" id="pl-runs">📋 Mes Runs</button>
+      </div>
+      <div id="pl-list" class="card-list"></div>
+      <div id="pl-runs-panel" style="display:none;">
+        <h3 style="margin:16px 0 8px;">Mes Runs</h3>
+        <div id="pl-runs-list" class="card-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER RUN -->
+  <div id="view-player-run" class="view">
+    <div class="split-layout">
+      <div class="map-area">
+        <div id="pr-map" class="leaflet-container-custom"></div>
+      </div>
+      <aside class="sidebar" id="pr-sidebar">
+        <h2 id="pr-title" style="color:#e94560;">...</h2>
+        <div id="pr-state" class="status-msg"></div>
+        <hr>
+        <h3>Boss Steps</h3>
+        <div id="pr-steps" class="card-list sidebar-scroll"></div>
+        <hr>
+        <div class="gold-row">
+          <span>💰 Gold</span>
+          <span id="pr-gold" class="gold-value">0</span>
+        </div>
+        <button class="btn" id="pr-attack" style="width:100%;" disabled>⚔️ Attaquer le boss !</button>
+        <div id="pr-msg" class="status-msg" style="min-height:50px;"></div>
+        <hr>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" id="pr-quit">← Quitter</button>
+          <button class="btn btn-sm" id="pr-abandon" style="color:#e94560;">Abandonner</button>
+        </div>
+      </aside>
+    </div>
+    <div id="pr-victory" class="victory-overlay" style="display:none;">
+      <div class="victory-box">
+        <h1>🏆 DONJON TERMINE ! 🏆</h1>
+        <p id="pr-victory-text"></p>
+        <button class="btn" id="pr-victory-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="view-leaderboard" class="view">
+    <div class="panel-page">
+      <div class="panel-header">
+        <button class="btn btn-secondary btn-sm" id="lb-back">← Menu</button>
+        <h2>🏆 Leaderboard</h2>
+        <div></div>
+      </div>
+      <div class="tab-bar">
+        <button class="tab active" data-key="completions">🏰 Completions</button>
+        <button class="tab" data-key="gold">💰 Gold</button>
+        <button class="tab" data-key="speed">⚡ Speed</button>
+      </div>
+      <div id="lb-table"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/boot.js"></script>
+</body>
+</html>

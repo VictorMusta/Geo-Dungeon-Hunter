@@ -1,0 +1,12 @@
+{
+  "name": "dungeon-quest",
+  "version": "1.0.0",
+  "description": "Dungeon Quest - Electron Frontend",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

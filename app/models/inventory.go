@@ -5,31 +5,29 @@ import "time"
 type ItemID string
 
 type InventoryEntry struct {
-	PlayerID  string    `db:"player_id"`
-	ItemID    string    `db:"item_id"`
-	Qty       int64     `db:"qty"`
-	UpdatedAt time.Time `db:"updated_at"`
+	PlayerID  string    `bson:"playerId" json:"playerId"`
+	ItemID    string    `bson:"itemId" json:"itemId"`
+	Qty       int64     `bson:"qty" json:"qty"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
-// Collection Mongodb collection
 func (ie *InventoryEntry) Collection() string {
 	return "inventory"
 }
 
 type ItemDef struct {
-	ID          string    `db:"id"`
-	Type        string    `db:"type"`
-	Rarity      string    `db:"rarity"`
-	Name        string    `db:"name"`
-	Description string    `db:"description"`
-	StatsJSON   []byte    `db:"stats_json"` // JSONB côté Postgres
-	Tradable    bool      `db:"tradable"`
-	BaseValue   int64     `db:"base_value"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
+	CustomID    string         `bson:"customID" json:"id"`
+	Type        string         `bson:"type" json:"type" validate:"required,oneof=weapon artifact consumable"`
+	Rarity      string         `bson:"rarity" json:"rarity" validate:"required,oneof=common uncommon rare epic legendary"`
+	Name        string         `bson:"name" json:"name" validate:"required"`
+	Description string         `bson:"description" json:"description"`
+	Stats       map[string]any `bson:"stats,omitempty" json:"stats,omitempty"`
+	Tradable    bool           `bson:"tradable" json:"tradable"`
+	BaseValue   int64          `bson:"baseValue" json:"baseValue"`
+	CreatedAt   time.Time      `bson:"createdAt" json:"createdAt"`
+	UpdatedAt   time.Time      `bson:"updatedAt" json:"updatedAt"`
 }
 
-// Collection Mongodb collection
 func (i *ItemDef) Collection() string {
 	return "item"
 }
