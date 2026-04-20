@@ -2,6 +2,7 @@ package player
 
 import (
 	"dungeons/app/controllers/common"
+	"dungeons/app/functions"
 	"dungeons/app/models"
 	player "dungeons/app/services/player"
 	"errors"
@@ -110,9 +111,13 @@ func (s *Player) Create(ctx *gin.Context) {
 		Count:      1,
 		Offset:     0,
 	}
+	// Generate token for auto-login
+	token, _ := functions.GenerateToken(player.CustomID)
+
 	response := &models.WSResponse{
-		Meta: meta,
-		Data: player,
+		Meta:  meta,
+		Data:  player,
+		Token: token,
 	}
 
 	common.SendResponse(ctx, http.StatusCreated, response)
@@ -253,4 +258,27 @@ func (s *Player) GetByIDs(ctx *gin.Context) {
 	}
 
 	common.SendResponse(ctx, http.StatusOK, response)
+}
+
+// Login controller to authenticate player
+func (s *Player) Login(ctx *gin.Context) {
+	var in models.LoginRequest
+	messageTypes := &models.MessageTypes{
+		OK:                  "player.Login.Success",
+		BadRequest:          "player.Login.BadRequest",
+		InternalServerError: "player.Login.Error",
+	}
+
+	if err := ctx.BindJSON(&in); err != nil {
+		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, messageTypes.BadRequest, err))
+		return
+	}
+
+	res, err := s.PlayerService.Login(in.DisplayName, in.Password)
+	if err != nil {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, messageTypes.BadRequest, err))
+		return
+	}
+
+	common.SendResponse(ctx, http.StatusOK, res)
 }

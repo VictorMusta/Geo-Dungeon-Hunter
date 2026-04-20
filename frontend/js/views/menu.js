@@ -34,6 +34,8 @@ export const menuView = {
         const res = await API.createPlayer(name);
         state.playerId = res.data.id;
         state.playerName = name;
+        state.token = res.token; // Capture the JWT from the response
+        
         statusMsg.textContent = `✅ Cree ! ID: ${res.data.id.slice(0, 8)}...`;
         statusMsg.className = 'status-msg ok';
         nameInput.disabled = true;

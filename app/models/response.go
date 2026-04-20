@@ -4,8 +4,9 @@ package models
 // - Meta : *Pre-formatted response header returning data.
 // - Data : *Data or list of data returned.
 type WSResponse struct {
-	Meta MetaResponse `json:"meta"`
-	Data interface{}  `json:"data"`
+	Meta  MetaResponse `json:"meta"`
+	Data  interface{}  `json:"data"`
+	Token string       `json:"token,omitempty"`
 }
 
 // MetaResponse is a valid response header

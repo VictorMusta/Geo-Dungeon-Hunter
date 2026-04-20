@@ -5,64 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; connect-src http://localhost:8080 https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://*.tile.openstreetmap.org;">
   <title>Dungeon Quest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@100..900&family=Bungee&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dopamine-theme">
+  <!-- GLOBAL PATTERNS -->
+  <div class="overlay-dots"></div>
+  <div class="overlay-stripes"></div>
+
+  <!-- FLOATING DECORATIONS -->
+  <div class="floating-decoration pulse-slow" style="top:5%; left:2%; font-size: 80px; opacity: 0.4;">✨</div>
+  <div class="floating-decoration rotate-slow" style="top:15%; right:5%; font-size: 60px; opacity: 0.3;">🚀</div>
+  <div class="floating-decoration bounce-slow" style="bottom:10%; left:5%; font-size: 50px; opacity: 0.3;">💎</div>
+  <div class="floating-decoration float-slow" style="bottom:5%; right:10%; font-size: 70px; opacity: 0.4;">💣</div>
 
   <!-- MENU -->
   <div id="view-menu" class="view active">
     <div class="center-col">
-      <h1 class="title">🏰 DUNGEON QUEST 🗡️</h1>
-      <p class="subtitle">Donjons en monde reel</p>
+      <h1 class="title text-gradient shadow-magenta">🏰 DUNGEON QUEST 🗡️</h1>
+      <p class="subtitle bounce-slow">Le donjon dont TU es le héros... en vrai !</p>
+      
       <div class="form-box">
-        <label>Ton pseudo</label>
+        <label>Ton identité secrète</label>
         <input type="text" id="menu-name" placeholder="Ex: GuerrierFou" />
-        <button class="btn" id="menu-create" style="width:100%; margin-top:10px;">Creer mon personnage</button>
+        <button class="btn w-full mt-4" id="menu-create">Creer mon personnage 🚀</button>
         <div id="menu-status" class="status-msg"></div>
       </div>
-      <div id="menu-roles" class="form-box" style="display:none;">
-        <p class="subtitle" style="margin-bottom:14px;">Choisir un role</p>
-        <button class="btn" id="menu-gm" style="width:100%; margin-bottom:8px;">🎲 Game Master</button>
-        <button class="btn btn-secondary" id="menu-player" style="width:100%; margin-bottom:8px;">⚔️ Joueur</button>
-        <button class="btn btn-secondary" id="menu-lb" style="width:100%;">🏆 Leaderboard</button>
+
+      <div id="menu-roles" class="form-box" style="display:none; transform: rotate(-1deg);">
+        <p class="subtitle shadow-cyan" style="margin-bottom:20px; font-size: 20px;">Choisis ta destinée 🔮</p>
+        <div style="display:flex; flex-direction: column; gap: 16px;">
+          <button class="btn" id="menu-gm" style="width:100%;">🎲 Devenir Game Master</button>
+          <button class="btn btn-secondary" id="menu-player" style="width:100%;">⚔️ Partir à l'aventure</button>
+          <button class="btn btn-secondary" id="menu-lb" style="width:100%; border-style: dotted;">🏆 Hall of Fame</button>
+        </div>
       </div>
-      <p class="footer-text">v1.0 — Go + MongoDB + Electron</p>
+      <p class="footer-text mt-4" style="color: var(--acc-cyan); font-weight: bold; opacity: 0.8;">v2.0 — Powered by GO + MONGO + DOPAMINE</p>
     </div>
   </div>
 
   <!-- GM LIST -->
   <div id="view-gm-list" class="view">
     <div class="panel-page">
-      <div class="panel-header">
-        <button class="btn btn-secondary btn-sm" id="gml-back">← Menu</button>
-        <h2>🎲 Game Master — Mes Donjons</h2>
+      <div class="panel-header" style="transform: rotate(1deg);">
+        <button class="btn btn-secondary btn-sm" id="gml-back">← Retour</button>
+        <h2 class="text-gradient shadow-cyan">🎲 Atelier du GM</h2>
         <button class="btn btn-sm" id="gml-new">+ Nouveau Donjon</button>
       </div>
-      <div id="gml-list" class="card-list"></div>
+      <div id="gml-list" class="card-list" style="margin-top: 20px;"></div>
     </div>
   </div>
 
   <!-- GM EDIT -->
   <div id="view-gm-edit" class="view">
     <div class="split-layout">
-      <aside class="sidebar" id="gme-sidebar">
-        <div class="form-group"><label>Titre</label><input type="text" id="gme-title" /></div>
-        <div class="form-group"><label>Description</label><input type="text" id="gme-desc" /></div>
-        <div class="form-group"><label>Zone</label><input type="text" id="gme-zone" /></div>
-        <div class="btn-row">
+      <aside class="sidebar" id="gme-sidebar" style="border-right: var(--border-mega) solid var(--acc-cyan); border-left: none;">
+        <h2 class="text-gradient shadow-cyan" style="font-size: 32px; margin-bottom: 20px;">Editeur GM</h2>
+        <div class="form-group"><label>Titre de la légende</label><input type="text" id="gme-title" /></div>
+        <div class="form-group"><label>Récit du lieu</label><input type="text" id="gme-desc" /></div>
+        <div class="form-group"><label>Région du monde</label><input type="text" id="gme-zone" /></div>
+        <div class="btn-row mt-4">
           <button class="btn btn-sm" id="gme-save">💾 Sauver</button>
-          <button class="btn btn-success btn-sm" id="gme-publish">📢 Publier</button>
+          <button class="btn btn-success btn-sm" id="gme-publish" style="background: var(--acc-purple); border-color: var(--acc-cyan);">📢 Publier</button>
         </div>
-        <h3>Boss Steps <span id="gme-count">(0)</span></h3>
-        <div id="gme-steps" class="card-list sidebar-scroll"></div>
-        <button class="btn btn-secondary btn-sm" id="gme-back" style="width:100%; margin-top:8px;">← Retour</button>
+        <h3 class="mt-4 shadow-magenta" style="font-size: 20px;">Gardiens du Donjon <span id="gme-count">(0)</span></h3>
+        <div id="gme-steps" class="card-list sidebar-scroll mt-4"></div>
+        <button class="btn btn-secondary btn-sm mt-4 w-full" id="gme-back">← Retour à la liste</button>
         <div id="gme-msg" class="status-msg"></div>
       </aside>
       <div class="map-area">
         <div id="gme-map" class="leaflet-container-custom"></div>
-        <div class="map-hint">Clic droit sur la carte = ajouter un boss</div>
+        <div class="map-hint shadow-cyan" style="background: var(--bg); padding: 4px 12px; border-radius: var(--radius-btn); border: 2px solid var(--acc-cyan); bottom: 10px; font-weight: bold; position: absolute; left: 50%; transform: translateX(-50%); z-index: 1000;">✨ CLIC DROIT = INVOQUER UN BOSS</div>
       </div>
     </div>
   </div>
@@ -70,14 +87,14 @@
   <!-- PLAYER LIST -->
   <div id="view-player-list" class="view">
     <div class="panel-page">
-      <div class="panel-header">
-        <button class="btn btn-secondary btn-sm" id="pl-back">← Menu</button>
-        <h2>⚔️ Donjons disponibles</h2>
+      <div class="panel-header" style="transform: rotate(-1deg);">
+        <button class="btn btn-secondary btn-sm" id="pl-back">← Retour</button>
+        <h2 class="text-gradient shadow-yellow">⚔️ Donjons épiques</h2>
         <button class="btn btn-secondary btn-sm" id="pl-runs">📋 Mes Runs</button>
       </div>
-      <div id="pl-list" class="card-list"></div>
-      <div id="pl-runs-panel" style="display:none;">
-        <h3 style="margin:16px 0 8px;">Mes Runs</h3>
+      <div id="pl-list" class="card-list" style="margin-top: 20px;"></div>
+      <div id="pl-runs-panel" class="form-box" style="display:none; margin-top: 40px; border-color: var(--acc-cyan);">
+        <h3 class="text-gradient shadow-cyan" style="font-size: 24px; margin-bottom: 20px;">🚀 Mes expéditions en cours</h3>
         <div id="pl-runs-list" class="card-list"></div>
       </div>
     </div>
@@ -121,17 +138,17 @@
   <!-- LEADERBOARD -->
   <div id="view-leaderboard" class="view">
     <div class="panel-page">
-      <div class="panel-header">
-        <button class="btn btn-secondary btn-sm" id="lb-back">← Menu</button>
-        <h2>🏆 Leaderboard</h2>
+      <div class="panel-header" style="transform: rotate(1deg);">
+        <button class="btn btn-secondary btn-sm" id="lb-back">← Retour</button>
+        <h2 class="text-gradient shadow-magenta" style="font-size: 40px;">🏆 Hall of Fame</h2>
         <div></div>
       </div>
-      <div class="tab-bar">
+      <div class="tab-bar mt-4">
         <button class="tab active" data-key="completions">🏰 Completions</button>
         <button class="tab" data-key="gold">💰 Gold</button>
         <button class="tab" data-key="speed">⚡ Speed</button>
       </div>
-      <div id="lb-table"></div>
+      <div id="lb-table" class="form-box" style="margin-top: 20px; border-color: var(--acc-cyan); padding: 0; overflow: hidden;"></div>
     </div>
   </div>
 

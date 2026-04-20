@@ -9,6 +9,7 @@ export class LeafletMap {
     this.playerMarker = null;
     this.onClick = null;
     this.onRightClick = null;
+    this.onMove = null;
 
     const center = options.center || DEFAULT_CENTER;
     const zoom = options.zoom || DEFAULT_ZOOM;
@@ -68,7 +69,15 @@ export class LeafletMap {
       const emoji = item.emoji || '❓';
       const marker = L.marker([lat, lon], {
         icon: this._emojiIcon(emoji, item.fontSize || 28),
+        draggable: !!item.draggable,
       }).addTo(this.map);
+
+      if (item.draggable) {
+        marker.on('dragend', (e) => {
+          const { lat, lng } = e.target.getLatLng();
+          if (this.onMove) this.onMove(item.id, lat, lng);
+        });
+      }
 
       if (item.label) {
         marker.bindTooltip(item.label, {

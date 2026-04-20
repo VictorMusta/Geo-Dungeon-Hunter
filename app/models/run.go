@@ -27,6 +27,7 @@ type Run struct {
 	KilledSteps []KilledStep `bson:"killedSteps,omitempty" json:"killedSteps,omitempty"`
 	StartedAt   time.Time    `bson:"startedAt" json:"startedAt"`
 	EndedAt     *time.Time   `bson:"endedAt,omitempty" json:"endedAt,omitempty"`
+	UpdatedAt   time.Time    `bson:"updatedAt" json:"updatedAt"`
 }
 
 func (r *Run) Collection() string {

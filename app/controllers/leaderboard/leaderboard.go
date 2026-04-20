@@ -3,6 +3,7 @@ package leaderboard
 import (
 	"dungeons/app/controllers/common"
 	"dungeons/app/models"
+	"dungeons/app/repositories"
 	service "dungeons/app/services/leaderboard"
 	"errors"
 	"net/http"
@@ -28,7 +29,7 @@ func (ctrl *Leaderboard) Get(ctx *gin.Context) {
 	}
 
 	var (
-		entries []service.LeaderboardEntry
+		entries []repositories.LeaderboardEntry
 		err     error
 	)
 
@@ -55,7 +56,7 @@ func (ctrl *Leaderboard) Get(ctx *gin.Context) {
 	}
 
 	if entries == nil {
-		entries = []service.LeaderboardEntry{}
+		entries = []repositories.LeaderboardEntry{}
 	}
 
 	response := &models.WSResponse{

@@ -19,16 +19,24 @@ export const playerListView = {
         list.innerHTML = '<p style="color:#8899aa; text-align:center; padding:40px;">Aucun donjon publie</p>';
         return;
       }
-      list.innerHTML = dungeons.map(d => `
-        <div class="card" data-id="${d.id}">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span class="card-title">🏰 ${d.title}</span>
+      const colorAccents = ['var(--acc-magenta)', 'var(--acc-cyan)', 'var(--acc-yellow)', 'var(--acc-orange)', 'var(--acc-purple)'];
+      list.innerHTML = dungeons.map((d, i) => {
+        const accent = colorAccents[i % colorAccents.length];
+        const rotate = (i % 2 === 0 ? 'rotate(-1deg)' : 'rotate(1deg)');
+        const offset = (i % 2 === 0 ? 'translateX(5px)' : 'translateX(-5px)');
+
+        return `
+          <div class="card" data-id="${d.id}" style="border-color: ${accent}; transform: ${rotate} ${offset}; margin-bottom: 30px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+              <span class="card-title shadow-cyan" style="font-size: 22px; font-weight: 900;">🏰 ${d.title}</span>
+            </div>
+            <div class="card-sub" style="font-weight: bold; color: white; opacity: 0.9; margin-bottom: 8px;">${d.description || ''}</div>
+            <div class="card-sub" style="color: var(--acc-yellow); font-weight: 900; letter-spacing: 1px;">📍 ${d.area?.name || '?'}</div>
+            <button class="btn btn-sm play-btn" data-id="${d.id}" style="margin-top:16px; width: 100%; box-shadow: 4px 4px 0 var(--acc-purple);">🎮 Lancer l'aventure</button>
+            <div style="position: absolute; bottom: 10px; right: 10px; font-size: 40px; transform: rotate(-15deg); opacity: 0.1; pointer-events: none;">🚀</div>
           </div>
-          <div class="card-sub">${d.description || ''}</div>
-          <div class="card-sub">📍 ${d.area?.name || '?'}</div>
-          <button class="btn btn-sm play-btn" data-id="${d.id}" style="margin-top:8px;">🎮 Jouer</button>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       list.querySelectorAll('.play-btn').forEach(btn =>
         btn.addEventListener('click', (e) => { e.stopPropagation(); this.startRun(btn.dataset.id); })

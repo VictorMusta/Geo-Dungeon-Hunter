@@ -1,136 +1,25 @@
 package leaderboard
 
 import (
-	"context"
-	"dungeons/app/server"
-
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"dungeons/app/repositories"
 )
 
-type Leaderboard struct{}
-
-func New() *Leaderboard {
-	return &Leaderboard{}
+type Leaderboard struct {
+	repo repositories.LeaderboardRepository
 }
 
-type LeaderboardEntry struct {
-	PlayerID    string  `bson:"_id" json:"playerId"`
-	DisplayName string  `bson:"displayName" json:"displayName"`
-	Score       float64 `bson:"score" json:"score"`
+func New(repo repositories.LeaderboardRepository) *Leaderboard {
+	return &Leaderboard{repo: repo}
 }
 
-func (s *Leaderboard) GetByCompletions(limit int) ([]LeaderboardEntry, error) {
-	srv := server.GetServer()
-	runCollection := srv.Database.Collection("run")
-
-	pipeline := bson.A{
-		bson.M{"$match": bson.M{"state": "completed"}},
-		bson.M{"$group": bson.M{
-			"_id":   "$playerId",
-			"score": bson.M{"$sum": 1},
-		}},
-		bson.M{"$sort": bson.M{"score": -1}},
-		bson.M{"$limit": limit},
-		bson.M{"$lookup": bson.M{
-			"from":         "player",
-			"localField":   "_id",
-			"foreignField": "customID",
-			"as":           "playerInfo",
-		}},
-		bson.M{"$unwind": bson.M{"path": "$playerInfo", "preserveNullAndEmptyArrays": true}},
-		bson.M{"$addFields": bson.M{
-			"displayName": bson.M{"$ifNull": bson.A{"$playerInfo.displayName", "Unknown"}},
-		}},
-		bson.M{"$project": bson.M{"playerInfo": 0}},
-	}
-
-	cursor, err := runCollection.Aggregate(context.TODO(), pipeline)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(context.TODO())
-
-	var entries []LeaderboardEntry
-	if err := cursor.All(context.TODO(), &entries); err != nil {
-		return nil, err
-	}
-	return entries, nil
+func (s *Leaderboard) GetByCompletions(limit int) ([]repositories.LeaderboardEntry, error) {
+	return s.repo.GetByCompletions(limit)
 }
 
-func (s *Leaderboard) GetByGold(limit int) ([]LeaderboardEntry, error) {
-	srv := server.GetServer()
-	playerCollection := srv.Database.Collection("player")
-
-	opts := options.Find().SetSort(bson.D{{Key: "gold", Value: -1}}).SetLimit(int64(limit))
-	cursor, err := playerCollection.Find(context.TODO(), bson.M{}, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(context.TODO())
-
-	var entries []LeaderboardEntry
-	for cursor.Next(context.TODO()) {
-		var doc bson.M
-		if err := cursor.Decode(&doc); err != nil {
-			return nil, err
-		}
-		entry := LeaderboardEntry{
-			Score: 0,
-		}
-		if id, ok := doc["customID"].(string); ok {
-			entry.PlayerID = id
-		}
-		if name, ok := doc["displayName"].(string); ok {
-			entry.DisplayName = name
-		}
-		switch g := doc["gold"].(type) {
-		case int32:
-			entry.Score = float64(g)
-		case int64:
-			entry.Score = float64(g)
-		case float64:
-			entry.Score = g
-		}
-		entries = append(entries, entry)
-	}
-	return entries, cursor.Err()
+func (s *Leaderboard) GetByGold(limit int) ([]repositories.LeaderboardEntry, error) {
+	return s.repo.GetByGold(limit)
 }
 
-func (s *Leaderboard) GetBySpeed(dungeonID string, limit int) ([]LeaderboardEntry, error) {
-	srv := server.GetServer()
-	runCollection := srv.Database.Collection("run")
-
-	pipeline := bson.A{
-		bson.M{"$match": bson.M{"state": "completed", "dungeonId": dungeonID}},
-		bson.M{"$addFields": bson.M{
-			"duration": bson.M{"$subtract": bson.A{"$endedAt", "$startedAt"}},
-		}},
-		bson.M{"$sort": bson.M{"duration": 1}},
-		bson.M{"$limit": limit},
-		bson.M{"$lookup": bson.M{
-			"from":         "player",
-			"localField":   "playerId",
-			"foreignField": "customID",
-			"as":           "playerInfo",
-		}},
-		bson.M{"$unwind": bson.M{"path": "$playerInfo", "preserveNullAndEmptyArrays": true}},
-		bson.M{"$project": bson.M{
-			"_id":         "$playerId",
-			"displayName": bson.M{"$ifNull": bson.A{"$playerInfo.displayName", "Unknown"}},
-			"score":       bson.M{"$divide": bson.A{"$duration", 1000}},
-		}},
-	}
-
-	cursor, err := runCollection.Aggregate(context.TODO(), pipeline)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(context.TODO())
-
-	var entries []LeaderboardEntry
-	if err := cursor.All(context.TODO(), &entries); err != nil {
-		return nil, err
-	}
-	return entries, nil
+func (s *Leaderboard) GetBySpeed(dungeonID string, limit int) ([]repositories.LeaderboardEntry, error) {
+	return s.repo.GetBySpeed(dungeonID, limit)
 }

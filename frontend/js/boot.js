@@ -13,4 +13,11 @@ registerView('player-list', playerListView);
 registerView('player-run', playerRunView);
 registerView('leaderboard', leaderboardView);
 
+// Expose views to window scope for inline HTML handlers (e.g. gm-edit boss steps)
+window.gmEditView = gmEditView;
+window.gmListView = gmListView;
+window.playerListView = playerListView;
+window.playerRunView = playerRunView;
+window.leaderboardView = leaderboardView;
+
 navigate('menu');

@@ -36,17 +36,33 @@ export const leaderboardView = {
         if (this.tab === 'speed') return `⚡ ${((e.bestTime || e.score || 0) / 1000).toFixed(1)}s`;
         return `🏰 ${e.completions || e.score || 0}`;
       };
+      const colorAccents = ['var(--acc-magenta)', 'var(--acc-cyan)', 'var(--acc-yellow)'];
       container.innerHTML = `
         <table class="lb-table">
-          <thead><tr><th>#</th><th>Joueur</th><th class="score">Score</th></tr></thead>
+          <thead>
+            <tr style="background: var(--acc-purple); color: white;">
+              <th style="border: none; padding: 16px;">RANG</th>
+              <th style="border: none; padding: 16px;">HÉROS</th>
+              <th class="score" style="border: none; padding: 16px;">RÉSULTAT</th>
+            </tr>
+          </thead>
           <tbody>
-            ${entries.map((e, i) => `
-              <tr style="${i < 3 ? 'font-weight:700;' : ''}">
-                <td>${i < 3 ? MEDALS[i] : i + 1}</td>
-                <td>${e.displayName || e.playerId?.slice(0, 8) || '???'}</td>
-                <td class="score">${fmt(e)}</td>
+            ${entries.map((e, i) => {
+              const accent = i < 3 ? colorAccents[i] : 'transparent';
+              const rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+              return `
+              <tr style="background: ${rowBg}; border-bottom: 2px dashed rgba(255,255,255,0.1);">
+                <td style="padding: 16px; font-weight: 900; color: ${accent || 'white'}; font-size: ${i < 3 ? '24px' : '18px'};">
+                  ${i < 3 ? MEDALS[i] : (i + 1)}
+                </td>
+                <td style="padding: 16px; font-weight: 700; font-family: var(--font-heading); text-transform: uppercase;">
+                  ${e.displayName || e.playerId?.slice(0, 8) || '???'}
+                </td>
+                <td class="score" style="padding: 16px; font-family: var(--font-display); color: ${i < 3 ? accent : 'var(--acc-cyan)'};">
+                  ${fmt(e)}
+                </td>
               </tr>
-            `).join('')}
+            `;}).join('')}
           </tbody>
         </table>
       `;

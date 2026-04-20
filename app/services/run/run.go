@@ -4,33 +4,40 @@ import (
 	"context"
 	"dungeons/app/functions"
 	"dungeons/app/models"
-	"dungeons/app/mongodb"
-	"dungeons/app/server"
+	"dungeons/app/repositories"
 	"errors"
 	"math/rand"
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/rs/zerolog/log"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type Run struct {
-	validate *validator.Validate
+	repo       repositories.RunRepository
+	dungeonRepo repositories.DungeonRepository
+	bsRepo     repositories.BossStepRepository
+	playerRepo repositories.PlayerRepository
+	validate   *validator.Validate
 }
 
-func New() *Run {
-	return &Run{validate: validator.New()}
+func New(
+	repo repositories.RunRepository,
+	dungeonRepo repositories.DungeonRepository,
+	bsRepo repositories.BossStepRepository,
+	playerRepo repositories.PlayerRepository,
+) *Run {
+	return &Run{
+		repo:        repo,
+		dungeonRepo: dungeonRepo,
+		bsRepo:      bsRepo,
+		playerRepo:  playerRepo,
+		validate:    validator.New(),
+	}
 }
 
 func (s *Run) Create(in *models.Run) (*models.Run, error) {
-	srv := server.GetServer()
-
 	// Verify dungeon exists and is published
-	var d models.Dungeon
-	dCollection := srv.Database.Collection(d.Collection())
-	err := dCollection.FindOne(context.TODO(), bson.M{"customID": in.DungeonID}).Decode(&d)
+	d, err := s.dungeonRepo.GetByID(in.DungeonID)
 	if err != nil {
 		return nil, errors.New("dungeon not found")
 	}
@@ -39,21 +46,13 @@ func (s *Run) Create(in *models.Run) (*models.Run, error) {
 	}
 
 	// Verify player exists
-	var p models.Player
-	pCollection := srv.Database.Collection(p.Collection())
-	err = pCollection.FindOne(context.TODO(), bson.M{"customID": in.PlayerID}).Decode(&p)
+	_, err = s.playerRepo.GetByID(in.PlayerID)
 	if err != nil {
 		return nil, errors.New("player not found")
 	}
 
 	// Check no active run for this player+dungeon
-	var r models.Run
-	rCollection := srv.Database.Collection(r.Collection())
-	err = rCollection.FindOne(context.TODO(), bson.M{
-		"dungeonId": in.DungeonID,
-		"playerId":  in.PlayerID,
-		"state":     "active",
-	}).Decode(&r)
+	_, err = s.repo.GetActiveRun(in.PlayerID, in.DungeonID)
 	if err == nil {
 		return nil, errors.New("player already has an active run for this dungeon")
 	}
@@ -68,8 +67,7 @@ func (s *Run) Create(in *models.Run) (*models.Run, error) {
 		StartedAt:   time.Now(),
 	}
 
-	if _, err := rCollection.InsertOne(context.TODO(), run); err != nil {
-		log.Error().Err(err).Msg("")
+	if err := s.repo.Create(&run); err != nil {
 		return nil, err
 	}
 
@@ -77,46 +75,15 @@ func (s *Run) Create(in *models.Run) (*models.Run, error) {
 }
 
 func (s *Run) GetByID(id string) (models.Run, error) {
-	var (
-		r           models.Run
-		queryParams models.QueryParams
-	)
-
-	srv := server.GetServer()
-	collection := srv.Database.Collection(r.Collection())
-
-	queryParams.FilterClause = append(queryParams.FilterClause, "customID,"+id)
-	filter := mongodb.SelectConstructeur(queryParams)
-	err := collection.FindOne(context.TODO(), filter).Decode(&r)
-	return r, err
+	return s.repo.GetByID(id)
 }
 
 func (s *Run) GetByPlayerID(playerID string) ([]models.Run, error) {
-	var runs []models.Run
-	var r models.Run
-
-	srv := server.GetServer()
-	collection := srv.Database.Collection(r.Collection())
-
-	opts := options.Find().SetSort(bson.D{{Key: "startedAt", Value: -1}})
-	cursor, err := collection.Find(context.TODO(), bson.M{"playerId": playerID}, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(context.TODO())
-
-	for cursor.Next(context.TODO()) {
-		var run models.Run
-		if err := cursor.Decode(&run); err != nil {
-			return nil, err
-		}
-		runs = append(runs, run)
-	}
-	return runs, cursor.Err()
+	return s.repo.GetByPlayerID(playerID)
 }
 
 func (s *Run) Abandon(id string) error {
-	r, err := s.GetByID(id)
+	r, err := s.repo.GetByID(id)
 	if err != nil {
 		return errors.New("run not found")
 	}
@@ -124,24 +91,22 @@ func (s *Run) Abandon(id string) error {
 		return errors.New("only active runs can be abandoned")
 	}
 
-	srv := server.GetServer()
-	collection := srv.Database.Collection(r.Collection())
-
 	now := time.Now()
-	_, err = collection.UpdateOne(context.TODO(), bson.M{"customID": id}, bson.M{
-		"$set": bson.M{"state": "abandoned", "endedAt": now, "updatedAt": now},
-	})
-	return err
+	r.State = "abandoned"
+	r.EndedAt = &now
+	r.UpdatedAt = now
+
+	return s.repo.Update(id, &r)
 }
 
 type AttemptResult struct {
-	Success bool              `json:"success"`
-	Rewards models.RewardsGiven `json:"rewards"`
-	RunCompleted bool         `json:"runCompleted"`
+	Success      bool                `json:"success"`
+	Rewards      models.RewardsGiven `json:"rewards"`
+	RunCompleted bool                `json:"runCompleted"`
 }
 
 func (s *Run) AttemptBoss(runID, stepID string, lat, lon float64) (*AttemptResult, error) {
-	r, err := s.GetByID(runID)
+	r, err := s.repo.GetByID(runID)
 	if err != nil {
 		return nil, errors.New("run not found")
 	}
@@ -161,12 +126,8 @@ func (s *Run) AttemptBoss(runID, stepID string, lat, lon float64) (*AttemptResul
 		}
 	}
 
-	srv := server.GetServer()
-
 	// Get the boss step
-	var bs models.BossStep
-	bsCollection := srv.Database.Collection(bs.Collection())
-	err = bsCollection.FindOne(context.TODO(), bson.M{"customID": stepID}).Decode(&bs)
+	bs, err := s.bsRepo.GetByID(r.DungeonID, stepID)
 	if err != nil {
 		return nil, errors.New("boss step not found")
 	}
@@ -195,74 +156,21 @@ func (s *Run) AttemptBoss(runID, stepID string, lat, lon float64) (*AttemptResul
 	}
 
 	// Count total steps to check completion
-	totalSteps, err := bsCollection.CountDocuments(context.TODO(), bson.M{"dungeonId": r.DungeonID})
+	totalSteps, err := s.bsRepo.CountByDungeon(r.DungeonID)
 	if err != nil {
 		return nil, err
 	}
 
 	runCompleted := int64(r.CurrentStep) >= totalSteps
 
-	// Atomic transaction: update run + player gold + inventory
-	session, err := srv.Database.Client().StartSession()
-	if err != nil {
-		return nil, err
+	killedStep := models.KilledStep{
+		BossStepID:   stepID,
+		KilledAt:     time.Now(),
+		RewardsGiven: rewards,
 	}
-	defer session.EndSession(context.TODO())
 
-	_, err = session.WithTransaction(context.TODO(), func(ctx context.Context) (interface{}, error) {
-		rCollection := srv.Database.Collection(r.Collection())
-
-		killedStep := models.KilledStep{
-			BossStepID:   stepID,
-			KilledAt:     time.Now(),
-			RewardsGiven: rewards,
-		}
-
-		runUpdate := bson.M{
-			"$push": bson.M{"killedSteps": killedStep},
-			"$inc":  bson.M{"currentStep": 1},
-		}
-		if runCompleted {
-			now := time.Now()
-			runUpdate["$set"] = bson.M{"state": "completed", "endedAt": now}
-		}
-
-		_, err := rCollection.UpdateOne(ctx, bson.M{"customID": runID}, runUpdate)
-		if err != nil {
-			return nil, err
-		}
-
-		// Credit player gold
-		pCollection := srv.Database.Collection("player")
-		_, err = pCollection.UpdateOne(ctx, bson.M{"customID": r.PlayerID}, bson.M{
-			"$inc": bson.M{"gold": rewards.Gold},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		// Add items to inventory
-		invCollection := srv.Database.Collection("inventory")
-		for _, item := range rewards.Items {
-			filter := bson.M{"playerId": r.PlayerID, "itemId": item.ItemID}
-			update := bson.M{
-				"$inc": bson.M{"qty": int64(item.Qty)},
-				"$set": bson.M{"updatedAt": time.Now()},
-				"$setOnInsert": bson.M{
-					"playerId": r.PlayerID,
-					"itemId":   item.ItemID,
-				},
-			}
-			opts := options.UpdateOne().SetUpsert(true)
-			_, err := invCollection.UpdateOne(ctx, filter, update, opts)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return nil, nil
-	})
-
+	// Execute transactional update in repository
+	err = s.repo.ExecuteBossAttempt(context.TODO(), runID, r.PlayerID, rewards, runCompleted, killedStep)
 	if err != nil {
 		return nil, err
 	}

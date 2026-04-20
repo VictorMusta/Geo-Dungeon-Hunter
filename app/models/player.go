@@ -6,10 +6,11 @@ type PlayerID string
 
 type Player struct {
 	CustomID    string    `bson:"customID" json:"id"`
-	DisplayName string    `json:"display_name"`
-	Gold        int64     `json:"gold"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	DisplayName string    `bson:"display_name" json:"display_name" validate:"required,min=3"`
+	Password    string    `bson:"password" json:"password,omitempty" validate:"omitempty,min=6"`
+	Gold        int64     `bson:"gold" json:"gold"`
+	CreatedAt   time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `bson:"updated_at" json:"updated_at"`
 }
 
 type PlayerResponse struct {

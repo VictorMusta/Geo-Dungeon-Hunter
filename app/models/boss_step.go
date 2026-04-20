@@ -20,6 +20,7 @@ type BossStep struct {
 	DungeonID       string      `bson:"dungeonId" json:"dungeonId" validate:"required"`
 	Order           int         `bson:"order" json:"order"`
 	Name            string      `bson:"name" json:"name" validate:"required"`
+	Emoji           string      `bson:"emoji" json:"emoji"`
 	Location        Location    `bson:"location" json:"location" validate:"required"`
 	ZoneDescription string      `bson:"zoneDescription" json:"zoneDescription"`
 	Difficulty      int         `bson:"difficulty" json:"difficulty" validate:"required,min=1,max=10"`

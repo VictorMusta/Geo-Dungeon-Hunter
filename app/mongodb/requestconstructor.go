@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -100,7 +99,7 @@ func FilterLikeConstructeur(params models.QueryParams, fq bson.M) bson.M {
 		for _, param := range params.FilterLikeClause {
 			// Retrieving the requested like filter
 			filterLike := strings.Split(param, ",")
-			fq[filterLike[0]] = primitive.Regex{Pattern: "^.*" + filterLike[1] + ".*$", Options: "i"}
+			fq[filterLike[0]] = bson.Regex{Pattern: "^.*" + filterLike[1] + ".*$", Options: "i"}
 		}
 	}
 	return fq

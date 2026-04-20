@@ -105,6 +105,29 @@ func (ctrl *Dungeon) GetPublished(ctx *gin.Context) {
 	common.SendResponse(ctx, http.StatusOK, response)
 }
 
+func (ctrl *Dungeon) GetByMJ(ctx *gin.Context) {
+	var params models.QueryParams
+	params.Parse(ctx)
+
+	mjId := ctx.Query("mjId")
+	if mjId == "" {
+		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "dungeon.GetByMJ.BadRequest", errors.New("mjId query parameter is required")))
+		return
+	}
+
+	dungeons, err := ctrl.DungeonService.GetByMJ(mjId, params)
+	if err != nil {
+		common.SendResponse(ctx, http.StatusInternalServerError, models.KnownError(http.StatusInternalServerError, "dungeon.GetByMJ.Error", err))
+		return
+	}
+
+	response := &models.WSResponse{
+		Meta: models.MetaResponse{ObjectName: "Dungeon", TotalCount: len(dungeons), Count: len(dungeons)},
+		Data: dungeons,
+	}
+	common.SendResponse(ctx, http.StatusOK, response)
+}
+
 func (ctrl *Dungeon) GetByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 
@@ -190,4 +213,20 @@ func (ctrl *Dungeon) ReorderSteps(ctx *gin.Context) {
 	}
 
 	common.SendResponse(ctx, http.StatusOK, models.Success(http.StatusOK, "step.Reorder.OK", "steps reordered"))
+}
+
+func (ctrl *Dungeon) DeleteStep(ctx *gin.Context) {
+	dungeonID := ctx.Param("id")
+	stepID := ctx.Param("stepId")
+
+	if err := ctrl.BossStepService.Delete(dungeonID, stepID); err != nil {
+		status := http.StatusBadRequest
+		if err.Error() == "mongo: no documents in result" {
+			status = http.StatusNotFound
+		}
+		common.SendResponse(ctx, status, models.KnownError(status, "step.Delete.Error", err))
+		return
+	}
+
+	common.SendResponse(ctx, http.StatusOK, models.Success(http.StatusOK, "step.Delete.OK", "step deleted"))
 }

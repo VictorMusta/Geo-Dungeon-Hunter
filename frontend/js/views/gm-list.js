@@ -12,22 +12,30 @@ export const gmListView = {
     const list = document.getElementById('gml-list');
     list.innerHTML = '<p style="color:#8899aa; text-align:center; padding:40px;">Chargement...</p>';
     try {
-      const res = await API.getDungeons();
+      const res = await API.getMJDungeons(state.playerId);
       const dungeons = res.data || [];
       if (dungeons.length === 0) {
         list.innerHTML = '<p style="color:#8899aa; text-align:center; padding:40px;">Aucun donjon. Cree le premier !</p>';
         return;
       }
-      list.innerHTML = dungeons.map(d => `
-        <div class="card" data-id="${d.id}">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span class="card-title">🏰 ${d.title}</span>
-            <span class="badge badge-${d.status}">${d.status}</span>
+      const colorAccents = ['var(--acc-magenta)', 'var(--acc-cyan)', 'var(--acc-yellow)', 'var(--acc-orange)', 'var(--acc-purple)'];
+      list.innerHTML = dungeons.map((d, i) => {
+        const accent = colorAccents[i % colorAccents.length];
+        const rotate = (i % 2 === 0 ? 'rotate(1deg)' : 'rotate(-1deg)');
+        const offset = (i % 2 === 0 ? 'translateY(10px)' : 'translateY(-10px)');
+        
+        return `
+          <div class="card" data-id="${d.id}" style="border-color: ${accent}; transform: ${rotate} ${offset}; margin-bottom: 30px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+              <span class="card-title shadow-magenta" style="font-size: 20px; font-weight: 900;">🏰 ${d.title}</span>
+              <span class="badge badge-${d.status}">${d.status}</span>
+            </div>
+            <div class="card-sub" style="font-weight: bold; color: white; opacity: 0.9; margin-bottom: 8px;">${d.description || 'Pas de description'}</div>
+            <div class="card-sub" style="color: var(--acc-cyan); font-weight: 900; letter-spacing: 1px;">📍 ${d.area?.name || '—'}</div>
+            <div style="position: absolute; top: -10px; right: -10px; font-size: 40px; transform: rotate(15deg); opacity: 0.1; pointer-events: none;">✨</div>
           </div>
-          <div class="card-sub">${d.description || 'Pas de description'}</div>
-          <div class="card-sub">📍 ${d.area?.name || '—'}</div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
       list.querySelectorAll('.card').forEach(c =>
         c.addEventListener('click', () => navigate('gm-edit', { dungeonId: c.dataset.id }))
       );

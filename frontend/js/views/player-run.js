@@ -83,16 +83,29 @@ export const playerRunView = {
     document.getElementById('pr-state').innerHTML =
       `${emoji} ${s.toUpperCase()} · Step ${this.run.currentStep}/${this.steps.length} · ${killed} boss tues`;
 
-    const stepDiv = document.getElementById('pr-steps');
+    const colorAccents = ['var(--acc-magenta)', 'var(--acc-cyan)', 'var(--acc-yellow)', 'var(--acc-orange)', 'var(--acc-purple)'];
     stepDiv.innerHTML = this.steps.map((st, i) => {
       const dead = this.run.killedSteps.some(k => k.bossStepId === st.id);
       const cur = st.order === this.run.currentStep && s === 'active';
-      const icon = dead ? '✅' : BOSS_EMOJIS[i % BOSS_EMOJIS.length];
-      const style = cur ? 'border-color:var(--accent);' : dead ? 'opacity:.5;' : '';
-      return `<div class="card" style="padding:8px; cursor:default; ${style}">
-        <span>${icon} ${st.name}</span>
-        <div class="card-sub">⚔️${st.difficulty} · 💰${st.goldReward}g · 📍${st.location?.radiusMeters || 500}m</div>
-      </div>`;
+      const icon = dead ? '💀' : (st.emoji || BOSS_EMOJIS[i % BOSS_EMOJIS.length]);
+      const accent = colorAccents[i % colorAccents.length];
+      
+      let cardStyle = `border-color: ${accent}; margin-bottom: 12px;`;
+      if (cur) cardStyle += ` border-width: 4px; box-shadow: 0 0 20px ${accent}; transform: scale(1.05);`;
+      if (dead) cardStyle += ` opacity: 0.6; filter: grayscale(0.5);`;
+
+      return `
+        <div class="card" style="padding:16px; cursor:default; ${cardStyle}">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:45px; height:45px; background:rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size: 24px;">
+              ${icon}
+            </div>
+            <div style="flex:1">
+              <div style="font-weight: 900; font-family: var(--font-heading); text-transform: uppercase; color: white;">${st.name}</div>
+              <div class="card-sub" style="font-size: 11px; font-weight: bold; color: ${accent};">⚔️ NIV. ${st.difficulty} · 💰 ${st.goldReward}G</div>
+            </div>
+          </div>
+        </div>`;
     }).join('');
 
     const mapItems = this.steps.map((st, i) => {
@@ -100,11 +113,11 @@ export const playerRunView = {
       const cur = st.order === this.run.currentStep && s === 'active';
       return {
         location: st.location,
-        emoji: dead ? '✅' : BOSS_EMOJIS[i % BOSS_EMOJIS.length],
+        emoji: dead ? '✅' : (st.emoji || BOSS_EMOJIS[i % BOSS_EMOJIS.length]),
         label: st.name,
         fontSize: cur ? 34 : 26,
-        circleColor: cur ? 'rgba(233,69,96,0.15)' : dead ? 'rgba(46,204,113,0.1)' : 'rgba(85,85,85,0.1)',
-        strokeColor: cur ? 'rgba(233,69,96,0.7)' : dead ? 'rgba(46,204,113,0.5)' : 'rgba(85,85,85,0.4)',
+        circleColor: cur ? 'rgba(255, 58, 242, 0.2)' : dead ? 'rgba(0, 245, 212, 0.1)' : 'rgba(255, 230, 0, 0.1)',
+        strokeColor: cur ? 'var(--acc-magenta)' : dead ? 'var(--acc-cyan)' : 'var(--acc-yellow)',
       };
     });
     map.setItems(mapItems);
@@ -141,9 +154,10 @@ export const playerRunView = {
     try {
       const res = await API.attemptBoss(this.runId, cur.id, this.playerLat, this.playerLon);
       const r = res.data;
-      let txt = `✅ VICTOIRE ! +${r.rewards.gold}💰`;
-      if (r.rewards.items?.length) txt += ' ' + r.rewards.items.map(i => `${i.qty}x 🎁`).join(', ');
-      if (r.runCompleted) txt += ' — 🏆 DONJON TERMINE !';
+      let txt = `<span style="font-size: 24px; display: block; margin-bottom: 8px;">🔥 VICTOIRE !!! 🔥</span>
+                 <span style="color: var(--acc-yellow); font-size: 20px;">+${r.rewards.gold} 💰</span>`;
+      if (r.rewards.items?.length) txt += '<br>' + r.rewards.items.map(i => `<span class="badge" style="background: var(--acc-cyan); margin: 2px;">${i.qty}x 🎁 ${i.name || 'Objet'}</span>`).join(' ');
+      if (r.runCompleted) txt += '<br><span style="font-family: var(--font-display); font-size: 22px; color: var(--acc-magenta);">🏆 DONJON NETTOYÉ !</span>';
       this.msg(txt);
       this.spawnParticles(cur);
       await this.reloadRun();
@@ -160,7 +174,7 @@ export const playerRunView = {
       }
     }
     btn.disabled = false;
-    btn.textContent = '⚔️ Attaquer le boss !';
+    btn.textContent = '⚔️ ATTAQUER !';
   },
 
   spawnParticles(step) {

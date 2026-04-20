@@ -4,23 +4,34 @@ import (
 	"context"
 	"dungeons/app/functions"
 	"dungeons/app/models"
-	"dungeons/app/mongodb"
-	"dungeons/app/server"
+	"dungeons/app/repositories"
 	"errors"
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/rs/zerolog/log"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type Auction struct {
-	validate *validator.Validate
+	repo          repositories.AuctionRepository
+	itemRepo      repositories.ItemRepository
+	inventoryRepo repositories.InventoryRepository
+	playerRepo    repositories.PlayerRepository
+	validate      *validator.Validate
 }
 
-func New() *Auction {
-	return &Auction{validate: validator.New()}
+func New(
+	repo repositories.AuctionRepository,
+	itemRepo repositories.ItemRepository,
+	inventoryRepo repositories.InventoryRepository,
+	playerRepo repositories.PlayerRepository,
+) *Auction {
+	return &Auction{
+		repo:          repo,
+		itemRepo:      itemRepo,
+		inventoryRepo: inventoryRepo,
+		playerRepo:    playerRepo,
+		validate:      validator.New(),
+	}
 }
 
 func (s *Auction) CreateListing(in *models.Listing) (*models.Listing, error) {
@@ -28,12 +39,8 @@ func (s *Auction) CreateListing(in *models.Listing) (*models.Listing, error) {
 		return nil, err
 	}
 
-	srv := server.GetServer()
-
 	// Verify item exists and is tradable
-	var item models.ItemDef
-	itemCollection := srv.Database.Collection(item.Collection())
-	err := itemCollection.FindOne(context.TODO(), bson.M{"customID": in.ItemID}).Decode(&item)
+	item, err := s.itemRepo.GetByID(in.ItemID)
 	if err != nil {
 		return nil, errors.New("item not found")
 	}
@@ -42,12 +49,7 @@ func (s *Auction) CreateListing(in *models.Listing) (*models.Listing, error) {
 	}
 
 	// Verify seller has enough items
-	invCollection := srv.Database.Collection("inventory")
-	var inv models.InventoryEntry
-	err = invCollection.FindOne(context.TODO(), bson.M{
-		"playerId": in.SellerID,
-		"itemId":   in.ItemID,
-	}).Decode(&inv)
+	inv, err := s.inventoryRepo.GetByItem(in.SellerID, in.ItemID)
 	if err != nil {
 		return nil, errors.New("seller does not own this item")
 	}
@@ -56,13 +58,7 @@ func (s *Auction) CreateListing(in *models.Listing) (*models.Listing, error) {
 	}
 
 	// Deduct items from seller inventory
-	newQty := inv.Qty - int64(in.Qty)
-	if newQty <= 0 {
-		_, err = invCollection.DeleteOne(context.TODO(), bson.M{"playerId": in.SellerID, "itemId": in.ItemID})
-	} else {
-		_, err = invCollection.UpdateOne(context.TODO(), bson.M{"playerId": in.SellerID, "itemId": in.ItemID},
-			bson.M{"$inc": bson.M{"qty": -int64(in.Qty)}, "$set": bson.M{"updatedAt": time.Now()}})
-	}
+	err = s.inventoryRepo.Update(in.SellerID, in.ItemID, -int64(in.Qty))
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +74,7 @@ func (s *Auction) CreateListing(in *models.Listing) (*models.Listing, error) {
 		ExpiresAt:    time.Now().Add(72 * time.Hour),
 	}
 
-	listingCollection := srv.Database.Collection(listing.Collection())
-	if _, err := listingCollection.InsertOne(context.TODO(), listing); err != nil {
-		log.Error().Err(err).Msg("")
+	if err := s.repo.Create(&listing); err != nil {
 		return nil, err
 	}
 
@@ -88,39 +82,12 @@ func (s *Auction) CreateListing(in *models.Listing) (*models.Listing, error) {
 }
 
 func (s *Auction) GetListings(queryParams models.QueryParams) ([]models.Listing, error) {
-	var listings []models.Listing
-	var l models.Listing
-
-	srv := server.GetServer()
-	collection := srv.Database.Collection(l.Collection())
-
-	queryParams.FilterClause = append(queryParams.FilterClause, "status,active")
-	filter := mongodb.SelectConstructeur(queryParams)
-
-	opts := options.Find().SetSort(bson.D{{Key: "pricePerUnit", Value: 1}})
-	cursor, err := collection.Find(context.TODO(), filter, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(context.TODO())
-
-	for cursor.Next(context.TODO()) {
-		var listing models.Listing
-		if err := cursor.Decode(&listing); err != nil {
-			return nil, err
-		}
-		listings = append(listings, listing)
-	}
-	return listings, cursor.Err()
+	return s.repo.GetByStatus("active")
 }
 
 func (s *Auction) Buy(listingID, buyerID string, qty int) error {
-	srv := server.GetServer()
-
 	// Get listing
-	var listing models.Listing
-	listingCollection := srv.Database.Collection(listing.Collection())
-	err := listingCollection.FindOne(context.TODO(), bson.M{"customID": listingID}).Decode(&listing)
+	listing, err := s.repo.GetByID(listingID)
 	if err != nil {
 		return errors.New("listing not found")
 	}
@@ -134,9 +101,7 @@ func (s *Auction) Buy(listingID, buyerID string, qty int) error {
 	totalPrice := int64(qty) * listing.PricePerUnit
 
 	// Verify buyer has enough gold
-	var buyer models.Player
-	pCollection := srv.Database.Collection(buyer.Collection())
-	err = pCollection.FindOne(context.TODO(), bson.M{"customID": buyerID}).Decode(&buyer)
+	buyer, err := s.playerRepo.GetByID(buyerID)
 	if err != nil {
 		return errors.New("buyer not found")
 	}
@@ -148,84 +113,22 @@ func (s *Auction) Buy(listingID, buyerID string, qty int) error {
 		return errors.New("cannot buy your own listing")
 	}
 
-	// Atomic transaction
-	session, err := srv.Database.Client().StartSession()
-	if err != nil {
-		return err
+	trade := &models.Trade{
+		CustomID:   functions.NewUUID(),
+		BuyerID:    buyerID,
+		SellerID:   listing.SellerID,
+		ListingID:  listingID,
+		Qty:        qty,
+		TotalPrice: totalPrice,
+		CreatedAt:  time.Now(),
 	}
-	defer session.EndSession(context.TODO())
 
-	_, err = session.WithTransaction(context.TODO(), func(ctx context.Context) (interface{}, error) {
-		// Debit buyer
-		_, err := pCollection.UpdateOne(ctx, bson.M{"customID": buyerID}, bson.M{
-			"$inc": bson.M{"gold": -totalPrice},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		// Credit seller
-		_, err = pCollection.UpdateOne(ctx, bson.M{"customID": listing.SellerID}, bson.M{
-			"$inc": bson.M{"gold": totalPrice},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		// Transfer items to buyer inventory
-		invCollection := srv.Database.Collection("inventory")
-		filter := bson.M{"playerId": buyerID, "itemId": listing.ItemID}
-		update := bson.M{
-			"$inc": bson.M{"qty": int64(qty)},
-			"$set": bson.M{"updatedAt": time.Now()},
-			"$setOnInsert": bson.M{
-				"playerId": buyerID,
-				"itemId":   listing.ItemID,
-			},
-		}
-		opts := options.UpdateOne().SetUpsert(true)
-		_, err = invCollection.UpdateOne(ctx, filter, update, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		// Update listing
-		remainingQty := listing.Qty - qty
-		listingUpdate := bson.M{}
-		if remainingQty <= 0 {
-			listingUpdate["$set"] = bson.M{"status": "sold", "qty": 0}
-		} else {
-			listingUpdate["$set"] = bson.M{"qty": remainingQty}
-		}
-		_, err = listingCollection.UpdateOne(ctx, bson.M{"customID": listingID}, listingUpdate)
-		if err != nil {
-			return nil, err
-		}
-
-		// Create trade record
-		trade := models.Trade{
-			CustomID:   functions.NewUUID(),
-			BuyerID:    buyerID,
-			SellerID:   listing.SellerID,
-			ListingID:  listingID,
-			Qty:        qty,
-			TotalPrice: totalPrice,
-			CreatedAt:  time.Now(),
-		}
-		tradeCollection := srv.Database.Collection(trade.Collection())
-		_, err = tradeCollection.InsertOne(ctx, trade)
-		return nil, err
-	})
-
-	return err
+	// Atomic transaction in repository
+	return s.repo.BuyListing(context.TODO(), buyerID, listingID, totalPrice, listing.SellerID, listing.ItemID, qty, trade)
 }
 
 func (s *Auction) Cancel(listingID, sellerID string) error {
-	srv := server.GetServer()
-
-	var listing models.Listing
-	listingCollection := srv.Database.Collection(listing.Collection())
-	err := listingCollection.FindOne(context.TODO(), bson.M{"customID": listingID}).Decode(&listing)
+	listing, err := s.repo.GetByID(listingID)
 	if err != nil {
 		return errors.New("listing not found")
 	}
@@ -237,25 +140,12 @@ func (s *Auction) Cancel(listingID, sellerID string) error {
 	}
 
 	// Return items to seller inventory
-	invCollection := srv.Database.Collection("inventory")
-	filter := bson.M{"playerId": sellerID, "itemId": listing.ItemID}
-	update := bson.M{
-		"$inc": bson.M{"qty": int64(listing.Qty)},
-		"$set": bson.M{"updatedAt": time.Now()},
-		"$setOnInsert": bson.M{
-			"playerId": sellerID,
-			"itemId":   listing.ItemID,
-		},
-	}
-		opts := options.UpdateOne().SetUpsert(true)
-		_, err = invCollection.UpdateOne(context.TODO(), filter, update, opts)
+	err = s.inventoryRepo.Update(sellerID, listing.ItemID, int64(listing.Qty))
 	if err != nil {
 		return err
 	}
 
 	// Mark listing as cancelled
-	_, err = listingCollection.UpdateOne(context.TODO(), bson.M{"customID": listingID}, bson.M{
-		"$set": bson.M{"status": "cancelled"},
-	})
-	return err
+	listing.Status = "cancelled"
+	return s.repo.Update(listingID, &listing)
 }

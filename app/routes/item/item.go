@@ -2,13 +2,18 @@ package item
 
 import (
 	controller "dungeons/app/controllers/item"
+	repo "dungeons/app/repositories/mongodb"
 	service "dungeons/app/services/item"
+	"dungeons/app/server"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter(g *gin.Engine) {
-	itemService := service.New()
+	srv := server.GetServer()
+	
+	itemRepo := repo.NewItemRepository(srv.Database)
+	itemService := service.New(itemRepo)
 	itemController := controller.New(itemService)
 
 	v1 := g.Group("/v1")
