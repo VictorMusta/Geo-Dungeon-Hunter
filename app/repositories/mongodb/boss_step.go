@@ -5,6 +5,7 @@ import (
 	"dungeons/app/models"
 	"dungeons/app/mongodb"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -23,7 +24,7 @@ func (r *BossStepRepository) GetByDungeon(dungeonId string) ([]models.BossStep, 
 	var steps []models.BossStep
 	var b models.BossStep
 	collection := r.db.Collection(b.Collection())
-	
+
 	cursor, err := collection.Find(context.TODO(), bson.M{"dungeonId": dungeonId})
 	if err != nil {
 		return nil, err
@@ -44,7 +45,7 @@ func (r *BossStepRepository) GetByDungeonOrdered(dungeonId string) ([]models.Bos
 	var steps []models.BossStep
 	var b models.BossStep
 	collection := r.db.Collection(b.Collection())
-	
+
 	opts := options.Find().SetSort(bson.D{{Key: "order", Value: 1}})
 	cursor, err := collection.Find(context.TODO(), bson.M{"dungeonId": dungeonId}, opts)
 	if err != nil {
@@ -65,7 +66,7 @@ func (r *BossStepRepository) GetByDungeonOrdered(dungeonId string) ([]models.Bos
 func (r *BossStepRepository) GetByID(dungeonId, id string) (models.BossStep, error) {
 	var b models.BossStep
 	collection := r.db.Collection(b.Collection())
-	
+
 	err := collection.FindOne(context.TODO(), bson.M{"dungeonId": dungeonId, "customID": id}).Decode(&b)
 	return b, err
 }
@@ -76,19 +77,33 @@ func (r *BossStepRepository) Create(step *models.BossStep) error {
 	return err
 }
 
-func (r *BossStepRepository) Update(id string, step *models.BossStep) error {
+func (r *BossStepRepository) Update(dungeonId, id string, step *models.BossStep) error {
 	var b models.BossStep
 	collection := r.db.Collection(b.Collection())
-	
+
 	doc, err := mongodb.ToDoc(step)
 	if err != nil {
 		return err
 	}
 
-	result, err := collection.UpdateOne(context.TODO(), bson.M{"customID": id}, bson.M{"$set": doc})
+	// Use bson.D for strictness in v2
+	filter := bson.D{
+		{Key: "dungeonId", Value: dungeonId},
+		{Key: "customID", Value: id},
+	}
+	
+	update := bson.D{
+		{Key: "$set", Value: doc},
+	}
+
+	result, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
+		fmt.Printf("DEBUG: Update ERROR for boss %s in dungeon %s: %v\n", id, dungeonId, err)
 		return err
 	}
+	
+	fmt.Printf("DEBUG: Update result for boss %s: Matched=%d, Modified=%d\n", id, result.MatchedCount, result.ModifiedCount)
+	
 	if result.MatchedCount == 0 {
 		return errors.New("boss step not found")
 	}

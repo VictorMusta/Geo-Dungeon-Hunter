@@ -3,8 +3,8 @@ package inventory
 import (
 	controller "dungeons/app/controllers/inventory"
 	repo "dungeons/app/repositories/mongodb"
-	service "dungeons/app/services/inventory"
 	"dungeons/app/server"
+	service "dungeons/app/services/inventory"
 
 	"dungeons/app/middleware"
 	"github.com/gin-gonic/gin"
@@ -12,7 +12,7 @@ import (
 
 func SetupRouter(g *gin.Engine) {
 	srv := server.GetServer()
-	
+
 	invRepo := repo.NewInventoryRepository(srv.Database)
 	inventoryService := service.New(invRepo)
 	inventoryController := controller.New(inventoryService)

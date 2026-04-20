@@ -25,7 +25,7 @@ func (r *PlayerRepository) Get(params models.QueryParams) ([]models.Player, erro
 	)
 	collection := r.db.Collection(player.Collection())
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -44,13 +44,13 @@ func (r *PlayerRepository) Get(params models.QueryParams) ([]models.Player, erro
 
 func (r *PlayerRepository) GetByID(id string) (models.Player, error) {
 	var (
-		player      models.Player
-		params      models.QueryParams
+		player models.Player
+		params models.QueryParams
 	)
 	collection := r.db.Collection(player.Collection())
 	params.FilterClause = append(params.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	err := collection.FindOne(context.TODO(), filter).Decode(&player)
 	return player, err
 }
@@ -69,7 +69,7 @@ func (r *PlayerRepository) Update(id string, player *models.Player) error {
 	collection := r.db.Collection(p.Collection())
 	params.FilterClause = append(params.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	doc, err := mongodb.ToDoc(player)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (r *PlayerRepository) Suspend(id string) error {
 	collection := r.db.Collection(p.Collection())
 	params.FilterClause = append(params.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	update := bson.M{"$set": bson.M{"suspended": true}}
 	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	return err

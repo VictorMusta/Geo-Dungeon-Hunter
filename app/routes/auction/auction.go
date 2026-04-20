@@ -3,8 +3,8 @@ package auction
 import (
 	controller "dungeons/app/controllers/auction"
 	repo "dungeons/app/repositories/mongodb"
-	service "dungeons/app/services/auction"
 	"dungeons/app/server"
+	service "dungeons/app/services/auction"
 
 	"dungeons/app/middleware"
 	"github.com/gin-gonic/gin"
@@ -12,7 +12,7 @@ import (
 
 func SetupRouter(g *gin.Engine) {
 	srv := server.GetServer()
-	
+
 	// Repositories
 	auctionRepo := repo.NewAuctionRepository(srv.Database)
 	itemRepo := repo.NewItemRepository(srv.Database)
@@ -28,7 +28,7 @@ func SetupRouter(g *gin.Engine) {
 		listings := v1.Group("/auction/listings")
 		{
 			listings.GET("", auctionController.GetListings)
-			
+
 			// Protected auction actions
 			protected := listings.Group("")
 			protected.Use(middleware.AuthMiddleware())

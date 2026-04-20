@@ -25,7 +25,7 @@ func (r *DungeonRepository) Get(params models.QueryParams) ([]models.Dungeon, er
 	)
 	collection := r.db.Collection(d.Collection())
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (r *DungeonRepository) GetByID(id string) (models.Dungeon, error) {
 	collection := r.db.Collection(d.Collection())
 	params.FilterClause = append(params.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	err := collection.FindOne(context.TODO(), filter).Decode(&d)
 	return d, err
 }
@@ -69,7 +69,7 @@ func (r *DungeonRepository) Update(id string, dungeon *models.Dungeon) error {
 	collection := r.db.Collection(d.Collection())
 	params.FilterClause = append(params.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	doc, err := mongodb.ToDoc(dungeon)
 	if err != nil {
 		return err

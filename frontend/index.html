@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; connect-src http://localhost:8080 https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://*.tile.openstreetmap.org;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; connect-src http://localhost:8080 https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org;">
   <title>Dungeon Quest</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,6 +41,10 @@
         <div style="display:flex; flex-direction: column; gap: 16px;">
           <button class="btn" id="menu-gm" style="width:100%;">🎲 Devenir Game Master</button>
           <button class="btn btn-secondary" id="menu-player" style="width:100%;">⚔️ Partir à l'aventure</button>
+          <div style="display:flex; gap: 8px;">
+            <button class="btn btn-secondary" id="menu-inv" style="width:50%; background: var(--acc-cyan); color: var(--bg);">🎒 Mon Sac-à-dos</button>
+            <button class="btn btn-secondary" id="menu-auc" style="width:50%; background: var(--acc-yellow); color: var(--bg);">⚖️ Hôtel des Ventes</button>
+          </div>
           <button class="btn btn-secondary" id="menu-lb" style="width:100%; border-style: dotted;">🏆 Hall of Fame</button>
         </div>
       </div>
@@ -54,7 +58,10 @@
       <div class="panel-header" style="transform: rotate(1deg);">
         <button class="btn btn-secondary btn-sm" id="gml-back">← Retour</button>
         <h2 class="text-gradient shadow-cyan">🎲 Atelier du GM</h2>
-        <button class="btn btn-sm" id="gml-new">+ Nouveau Donjon</button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary btn-sm" id="gml-forge">🛠️ Forge d'Objets</button>
+          <button class="btn btn-sm" id="gml-new">+ Nouveau Donjon</button>
+        </div>
       </div>
       <div id="gml-list" class="card-list" style="margin-top: 20px;"></div>
     </div>
@@ -62,24 +69,127 @@
 
   <!-- GM EDIT -->
   <div id="view-gm-edit" class="view">
-    <div class="split-layout">
-      <aside class="sidebar" id="gme-sidebar" style="border-right: var(--border-mega) solid var(--acc-cyan); border-left: none;">
-        <h2 class="text-gradient shadow-cyan" style="font-size: 32px; margin-bottom: 20px;">Editeur GM</h2>
-        <div class="form-group"><label>Titre de la légende</label><input type="text" id="gme-title" /></div>
-        <div class="form-group"><label>Récit du lieu</label><input type="text" id="gme-desc" /></div>
-        <div class="form-group"><label>Région du monde</label><input type="text" id="gme-zone" /></div>
-        <div class="btn-row mt-4">
-          <button class="btn btn-sm" id="gme-save">💾 Sauver</button>
-          <button class="btn btn-success btn-sm" id="gme-publish" style="background: var(--acc-purple); border-color: var(--acc-cyan);">📢 Publier</button>
+    <div class="panel-page" style="overflow-y: auto; display: block;">
+      <div class="panel-header" style="transform: rotate(0.5deg); margin-bottom: 30px;">
+        <button class="btn btn-secondary btn-sm" id="gme-back">← Retour</button>
+        <h2 class="text-gradient shadow-cyan">🎲 Atelier du GM</h2>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-sm" id="gme-save">💾 Sauver</button>
+            <button class="btn btn-success btn-sm" id="gme-publish" style="background: var(--acc-purple); border-color: var(--acc-cyan);">📢 Publier</button>
         </div>
-        <h3 class="mt-4 shadow-magenta" style="font-size: 20px;">Gardiens du Donjon <span id="gme-count">(0)</span></h3>
-        <div id="gme-steps" class="card-list sidebar-scroll mt-4"></div>
-        <button class="btn btn-secondary btn-sm mt-4 w-full" id="gme-back">← Retour à la liste</button>
-        <div id="gme-msg" class="status-msg"></div>
-      </aside>
-      <div class="map-area">
-        <div id="gme-map" class="leaflet-container-custom"></div>
-        <div class="map-hint shadow-cyan" style="background: var(--bg); padding: 4px 12px; border-radius: var(--radius-btn); border: 2px solid var(--acc-cyan); bottom: 10px; font-weight: bold; position: absolute; left: 50%; transform: translateX(-50%); z-index: 1000;">✨ CLIC DROIT = INVOQUER UN BOSS</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-box">
+             <h3 style="color:var(--acc-cyan); margin-bottom:15px; font-size:14px;">📝 Détails du Donjon</h3>
+             <div class="form-group"><label>Titre de la légende</label><input type="text" id="gme-title" /></div>
+             <div class="form-group"><label>Région du monde</label><input type="text" id="gme-zone" /></div>
+             <div class="form-group"><label>Récit du lieu</label><textarea id="gme-desc" style="width:100%; min-height:100px; background:rgba(0,0,0,0.3); border:2px solid var(--acc-purple); border-radius:15px; color:white; padding:15px;"></textarea></div>
+        </div>
+        <div class="form-box" style="border-color:var(--acc-yellow);">
+             <h3 style="color:var(--acc-yellow); margin-bottom:15px; font-size:14px;">🏆 Récompense Finale</h3>
+             <div class="form-group">
+                <label>Or de victoire finale</label>
+                <input type="number" id="gme-completion-gold" value="0" />
+             </div>
+             <div style="margin-top:20px; padding:15px; background:rgba(0,0,0,0.2); border-radius:15px; border: 1px dashed var(--acc-yellow);">
+                <p style="font-size:12px; color:var(--acc-yellow); opacity:0.8;">Cet or sera versé au joueur qui terrasse le dernier boss du donjon.</p>
+             </div>
+             <button class="btn btn-sm w-full mt-4" style="background:var(--acc-magenta); border-color:var(--acc-magenta);" id="gme-show-map">📍 Gérer la carte (Placement des Boss)</button>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="shadow-magenta" style="font-size: 24px; margin-bottom:20px;">⚔️ Gardiens du Donjon <span id="gme-count">(0)</span></h3>
+        <div id="gme-steps" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; padding-bottom: 40px;"></div>
+      </div>
+      
+      <div id="gme-msg" class="status-msg"></div>
+    </div>
+
+    <!-- MAP MODAL -->
+    <div id="gme-map-modal" class="modal-map-overlay">
+        <div class="modal-map-header">
+            <div>
+                <h2 class="text-gradient" style="font-size:32px;">📍 Cartographie du Mal</h2>
+                <p style="color:var(--acc-cyan); font-weight:bold; font-size:12px;">CLIC DROIT = NOUVEAU BOSS | DRAG & DROP = REPOSITIONNER</p>
+            </div>
+            <button class="btn btn-sm" id="gme-hide-map" style="background:var(--acc-magenta); border-color:white;">✅ Terminer le placement</button>
+        </div>
+        <div class="modal-map-content">
+            <div id="gme-map" style="width:100%; height:100%;"></div>
+        </div>
+    </div>
+  </div>
+
+  <!-- GM ITEMS (FORGE) -->
+  <div id="view-gm-items" class="view">
+    <div class="panel-page" style="overflow-y: auto; display: block;">
+      <div class="panel-header" style="transform: rotate(-0.5deg); margin-bottom: 30px;">
+        <button class="btn btn-secondary btn-sm" id="gmi-back">← Retour</button>
+        <h2 class="text-gradient shadow-yellow">⚒️ Atelier de Forgeron</h2>
+        <div></div>
+      </div>
+
+      <div class="grid-2">
+        <!-- ITEM CREATION/EDITION -->
+        <div class="form-box" style="border-color: var(--acc-yellow);">
+            <h3 id="gmi-form-title" style="color:var(--acc-yellow); margin-bottom:15px; font-size:14px;">🆕 Forger un nouvel objet</h3>
+            <input type="hidden" id="gmi-id" />
+            
+            <div class="form-group">
+                <label>Nom de l'objet</label>
+                <input type="text" id="gmi-name" placeholder="Ex: Épée de l'Exilé" />
+            </div>
+
+            <div class="grid-2 mt-4" style="gap:12px;">
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="gmi-type">
+                        <option value="weapon">⚔️ Arme</option>
+                        <option value="artifact">💎 Artefact</option>
+                        <option value="consumable">🧪 Consommable</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Rareté</label>
+                    <select id="gmi-rarity">
+                        <option value="common">Commun</option>
+                        <option value="uncommon">Peu commun</option>
+                        <option value="rare">Rare</option>
+                        <option value="epic">Épique</option>
+                        <option value="legendary">Légendaire</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <label>Valeur de base (Or)</label>
+                <input type="number" id="gmi-value" value="100" />
+            </div>
+
+            <div class="form-group mt-4">
+                <label>Description (Lore)</label>
+                <textarea id="gmi-desc" style="width:100%; min-height:80px; background:rgba(0,0,0,0.3); border:2px solid var(--acc-purple); border-radius:15px; color:white; padding:15px;"></textarea>
+            </div>
+
+            <label class="mt-4" style="display:flex; align-items:center; gap:10px; cursor:pointer; color:var(--acc-cyan); font-weight:bold; font-size:14px;">
+                <input type="checkbox" id="gmi-tradable" checked style="width:20px; height:20px;" />
+                Échangeable à l'Hôtel des Ventes
+            </label>
+
+            <div style="display:flex; gap:12px; margin-top:24px;">
+                <button class="btn btn-sm w-full" id="gmi-save" style="background:var(--acc-cyan); color:var(--bg); border-color:var(--acc-yellow);">🛠️ Forger l'objet</button>
+                <button class="btn btn-secondary btn-sm w-full" id="gmi-cancel" style="display:none;">Annuler</button>
+            </div>
+            <div id="gmi-msg" class="status-msg"></div>
+        </div>
+
+        <!-- ITEM LIST -->
+        <div class="mt-4">
+            <h3 class="shadow-magenta" style="font-size: 24px; margin-bottom:20px;">📜 Grimoire des Objets</h3>
+            <div id="gmi-list" style="display: flex; flex-direction: column; gap: 12px; height: 600px; overflow-y: auto; padding-right: 10px;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -128,9 +238,12 @@
     </div>
     <div id="pr-victory" class="victory-overlay" style="display:none;">
       <div class="victory-box">
-        <h1>🏆 DONJON TERMINE ! 🏆</h1>
-        <p id="pr-victory-text"></p>
-        <button class="btn" id="pr-victory-ok">OK</button>
+        <h1 class="text-gradient shadow-yellow" style="font-size: 32px; margin-bottom: 20px;">🏆 DONJON TERMINE ! 🏆</h1>
+        <div id="pr-victory-content" style="background:rgba(255,255,255,0.05); padding:20px; border-radius:var(--radius-btn); border: 2px solid var(--acc-yellow); margin-bottom:20px; text-align:left;">
+           <div id="pr-victory-text" style="font-weight:bold; margin-bottom:10px;"></div>
+           <div id="pr-victory-rewards" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+        <button class="btn" id="pr-victory-ok" style="width:100%;">EXCELLENT ! ✨</button>
       </div>
     </div>
   </div>
@@ -149,6 +262,34 @@
         <button class="tab" data-key="speed">⚡ Speed</button>
       </div>
       <div id="lb-table" class="form-box" style="margin-top: 20px; border-color: var(--acc-cyan); padding: 0; overflow: hidden;"></div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div id="view-inventory" class="view">
+    <div class="panel-page">
+      <div class="panel-header" style="transform: rotate(1deg);">
+        <button class="btn btn-secondary btn-sm" id="inv-back">← Retour</button>
+        <h2 class="text-gradient shadow-cyan" style="font-size: 40px;">🎒 Mon Sac</h2>
+        <div class="gold-box" style="font-size: 24px; color: var(--acc-yellow);">💰 <span id="inv-gold">0</span></div>
+      </div>
+      <div id="inv-list" class="card-list" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- AUCTION HOUSE -->
+  <div id="view-auction" class="view">
+    <div class="panel-page">
+      <div class="panel-header" style="transform: rotate(-1deg);">
+        <button class="btn btn-secondary btn-sm" id="auc-back">← Retour</button>
+        <h2 class="text-gradient shadow-yellow" style="font-size: 40px;">⚖️ Hôtel des Ventes</h2>
+        <div class="gold-box" style="font-size: 24px; color: var(--acc-yellow);">💰 <span id="auc-gold">0</span></div>
+      </div>
+      <div class="tab-bar mt-4">
+        <button class="tab active" data-key="market">🛒 Le Marché</button>
+        <button class="tab" data-key="mine">🏷️ Mes Ventes</button>
+      </div>
+      <div id="auc-list" class="card-list" style="margin-top: 20px;"></div>
     </div>
   </div>
 

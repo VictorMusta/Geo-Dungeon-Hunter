@@ -3,9 +3,9 @@ package dungeon
 import (
 	controller "dungeons/app/controllers/dungeon"
 	repo "dungeons/app/repositories/mongodb"
+	"dungeons/app/server"
 	bsService "dungeons/app/services/bossstep"
 	dService "dungeons/app/services/dungeon"
-	"dungeons/app/server"
 
 	"dungeons/app/middleware"
 	"github.com/gin-gonic/gin"
@@ -13,15 +13,15 @@ import (
 
 func SetupRouter(g *gin.Engine) {
 	srv := server.GetServer()
-	
+
 	// Repositories
 	dRepo := repo.NewDungeonRepository(srv.Database)
 	bsRepo := repo.NewBossStepRepository(srv.Database)
 
 	// Services
 	bossStepService := bsService.New(bsRepo)
-	dungeonService := dService.New(dRepo, bsRepo)
-	
+	dungeonService := dService.New(dRepo, bossStepService)
+
 	dungeonController := controller.New(dungeonService, bossStepService)
 
 	v1 := g.Group("/v1")
@@ -33,6 +33,7 @@ func SetupRouter(g *gin.Engine) {
 			mj.GET("", dungeonController.GetByMJ)
 			mj.POST("", dungeonController.Create)
 			mj.PUT("/:id", dungeonController.Update)
+			mj.PUT("/:id/full", dungeonController.UpdateFull)
 			mj.POST("/:id/publish", dungeonController.Publish)
 			mj.POST("/:id/steps", dungeonController.CreateStep)
 			mj.PUT("/:id/steps/:stepId", dungeonController.UpdateStep)

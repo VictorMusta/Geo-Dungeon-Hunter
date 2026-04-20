@@ -3,18 +3,18 @@ package tests
 import (
 	"context"
 	"dungeons/app/mongodb"
+	"dungeons/app/server"
 	"os"
 	"testing"
-	"dungeons/app/server"
-	
+
 	"dungeons/app/routes/auction"
+	"dungeons/app/routes/common"
 	"dungeons/app/routes/dungeon"
 	"dungeons/app/routes/inventory"
 	"dungeons/app/routes/item"
 	"dungeons/app/routes/leaderboard"
 	"dungeons/app/routes/player"
 	"dungeons/app/routes/run"
-	"dungeons/app/routes/common"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -35,7 +35,7 @@ func SetupTestDB(t *testing.T) *mongo.Database {
 	}
 
 	db := client.Database("dungeons_test")
-	
+
 	// Ensure DB is clean
 	err = db.Drop(context.TODO())
 	if err != nil {
@@ -54,7 +54,7 @@ func SetupFullTestRouter(db *mongo.Database) *gin.Engine {
 
 	gin.SetMode(gin.TestMode)
 	r := common.SetupRouter()
-	
+
 	player.SetupRouter(r)
 	item.SetupRouter(r)
 	dungeon.SetupRouter(r)

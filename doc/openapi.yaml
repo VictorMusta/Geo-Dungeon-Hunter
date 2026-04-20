@@ -1,0 +1,313 @@
+openapi: 3.0.0
+info:
+  title: Dungeon Quest API
+  description: "API de l'Architecture Hexagonale pour le jeu Dungeons Quest (Economie, Boss, Runs)"
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8080
+    description: Local API Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Insère ton token JWT sans le mot 'Bearer' devant"
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/players:
+    post:
+      summary: Créer un personnage
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Joueur créé
+    get:
+      summary: Lister les joueurs
+      responses:
+        '200':
+          description: Liste des joueurs
+  
+  /v1/players/login:
+    post:
+      summary: Se connecter / Générer JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: "Retourne le token JWT"
+
+  /v1/players/{id}:
+    get:
+      summary: Récupérer un personnage par ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Joueur
+    post:
+      summary: Mettre à jour un joueur
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gold:
+                  type: integer
+      responses:
+        '200':
+          description: Succès
+
+  /v1/dungeons:
+    get:
+      summary: Lister les donjons publiés
+      responses:
+        '200':
+          description: Les donjons (avec statut "published")
+
+  /v1/dungeons/{id}:
+    get:
+      summary: Récupérer un donjon par ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Le donjon
+
+  /v1/mj/dungeons:
+    post:
+      summary: Créer un donjon (Mode GM)
+      tags: [GM]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Donjon créé en brouillon
+
+  /v1/mj/dungeons/{id}:
+    post:
+      summary: Mettre à jour ou configurer un donjon (Mode GM)
+      tags: [GM]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Donjon mis à jour
+
+  /v1/runs:
+    get:
+      summary: Obtenir mes runs en cours
+      parameters:
+        - in: query
+          name: playerId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Liste des runs
+    post:
+      summary: Démarrer un donjon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                playerId:
+                  type: string
+                dungeonId:
+                  type: string
+      responses:
+        '201':
+          description: Run initialisée
+
+  /v1/runs/{id}:
+    get:
+      summary: Obtenir une run
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Détail de la run
+
+  /v1/runs/{id}/attempt:
+    post:
+      summary: Attaquer un boss
+      description: Nécessite les coordonnées GPS pour la validation Haversine. Si le boss meurt, verse l'or et le loot dans la DB avec utilisation d'une transaction Mongo.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stepIndex:
+                  type: integer
+                lat:
+                  type: number
+                lng:
+                  type: number
+      responses:
+        '200':
+          description: Résultat du combat
+
+  /v1/inventory:
+    get:
+      summary: Obtenir mon inventaire (items gagnés)
+      parameters:
+        - in: query
+          name: playerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Les items dans le sac du joueur
+
+  /v1/auction/listings:
+    get:
+      summary: Voir l'hôtel des ventes
+      responses:
+        '200':
+          description: Tous les objets en vente
+    post:
+      summary: Mettre un objet en vente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sellerId:
+                  type: string
+                itemId:
+                  type: string
+                qty:
+                  type: integer
+                pricePerUnit:
+                  type: integer
+      responses:
+        '201':
+          description: Enchère créée
+
+  /v1/auction/listings/{id}/buy:
+    post:
+      summary: Acheter un objet
+      description: Transaction atomique qui débite l'or, transfère l'or au vendeur, et transfère l'item.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                buyerId:
+                  type: string
+      responses:
+        '200':
+          description: Achat réussi
+
+  /v1/auction/listings/{id}/cancel:
+    post:
+      summary: Annuler une de ses ventes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vente annulée
+
+  /v1/leaderboard:
+    get:
+      summary: Hall of Fame (Classements mondiaux)
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [completions, gold, speed]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Le classement top N

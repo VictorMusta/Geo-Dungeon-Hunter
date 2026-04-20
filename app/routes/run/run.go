@@ -3,8 +3,8 @@ package run
 import (
 	controller "dungeons/app/controllers/run"
 	repo "dungeons/app/repositories/mongodb"
-	service "dungeons/app/services/run"
 	"dungeons/app/server"
+	service "dungeons/app/services/run"
 
 	"dungeons/app/middleware"
 	"github.com/gin-gonic/gin"
@@ -12,7 +12,7 @@ import (
 
 func SetupRouter(g *gin.Engine) {
 	srv := server.GetServer()
-	
+
 	// Repositories
 	runRepo := repo.NewRunRepository(srv.Database)
 	dungeonRepo := repo.NewDungeonRepository(srv.Database)

@@ -9,7 +9,7 @@ type BossStepRepository interface {
 	GetByDungeonOrdered(dungeonId string) ([]models.BossStep, error)
 	GetByID(dungeonId, id string) (models.BossStep, error)
 	Create(step *models.BossStep) error
-	Update(id string, step *models.BossStep) error
+	Update(dungeonId, id string, step *models.BossStep) error
 	Delete(dungeonId, id string) error
 	CountByDungeon(dungeonId string) (int64, error)
 }

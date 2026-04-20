@@ -78,13 +78,34 @@ export const playerRunView = {
 
   refresh() {
     const s = this.run.state;
-    const killed = this.run.killedSteps.length;
+    const killedCount = this.run.killedSteps.length;
     const emoji = s === 'active' ? '🟢' : s === 'completed' ? '🏆' : '⛔';
     document.getElementById('pr-state').innerHTML =
-      `${emoji} ${s.toUpperCase()} · Step ${this.run.currentStep}/${this.steps.length} · ${killed} boss tues`;
+      `${emoji} ${s.toUpperCase()} · Step ${this.run.currentStep}/${this.steps.length} · ${killedCount} boss tues`;
+
+    const stepDiv = document.getElementById('pr-steps');
+    if (!stepDiv) return;
+
+    // Calculate pending rewards
+    let pendingGold = 0;
+    const pendingItems = {};
+    this.run.killedSteps.forEach(ks => {
+      pendingGold += ks.RewardsGiven.Gold;
+      (ks.RewardsGiven.Items || []).forEach(it => {
+        pendingItems[it.ItemID] = (pendingItems[it.ItemID] || 0) + it.Qty;
+      });
+    });
 
     const colorAccents = ['var(--acc-magenta)', 'var(--acc-cyan)', 'var(--acc-yellow)', 'var(--acc-orange)', 'var(--acc-purple)'];
-    stepDiv.innerHTML = this.steps.map((st, i) => {
+    stepDiv.innerHTML = `
+      <div class="form-box" style="margin-bottom:15px; border-color:var(--acc-yellow); padding:10px;">
+        <div style="font-size:10px; font-weight:bold; color:var(--acc-yellow); text-transform:uppercase; margin-bottom:5px;">💰 Butin accumulé (en attente)</div>
+        <div style="font-size:18px; font-weight:900; color:white;">${pendingGold} G</div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;">
+           ${Object.entries(pendingItems).map(([id, qty]) => `<span class="badge" style="font-size:9px; background:rgba(0,245,212,0.2); border:1px solid var(--acc-cyan);">${qty}x 📦</span>`).join('')}
+        </div>
+      </div>
+    ` + this.steps.map((st, i) => {
       const dead = this.run.killedSteps.some(k => k.bossStepId === st.id);
       const cur = st.order === this.run.currentStep && s === 'active';
       const icon = dead ? '💀' : (st.emoji || BOSS_EMOJIS[i % BOSS_EMOJIS.length]);
@@ -199,13 +220,44 @@ export const playerRunView = {
     }
   },
 
-  showVictory() {
+  async showVictory() {
     const v = document.getElementById('pr-victory');
-    v.style.display = '';
-    document.getElementById('pr-victory-text').textContent = `${this.run.killedSteps.length} boss vaincus — Bravo ! 🎉`;
+    const textEl = document.getElementById('pr-victory-text');
+    const rewardsEl = document.getElementById('pr-victory-rewards');
+    
+    let totalGold = 0;
+    const totalItems = {};
+    this.run.killedSteps.forEach(ks => {
+      totalGold += ks.RewardsGiven.Gold;
+      (ks.RewardsGiven.Items || []).forEach(it => {
+        totalItems[it.ItemID] = (totalItems[it.ItemID] || 0) + it.Qty;
+      });
+    });
+
+    textEl.innerHTML = `<span style="color:var(--acc-yellow);">${this.run.killedSteps.length} BOSS VAINCUS !</span><br>Le donjon est nettoyé. 🎉`;
+    
+    rewardsEl.innerHTML = `
+      <div style="font-size: 14px; color:white; margin-bottom:10px;">Votre butin sécurisé :</div>
+      <div style="display:flex; justify-content:space-between; font-size: 20px; font-weight:900; color:var(--acc-yellow);">
+         <span>💰 TOTAL OR:</span>
+         <span>${totalGold} G</span>
+      </div>
+      <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+         ${Object.entries(totalItems).length ? Object.entries(totalItems).map(([id, qty]) => `
+           <div class="card" style="padding:10px; margin:0; border-color:var(--acc-cyan); display:flex; align-items:center; gap:10px;">
+             <span style="font-size:20px;">🎁</span>
+             <span style="flex:1; font-weight:bold;">Objet ID: ${id}</span>
+             <span class="badge" style="background:var(--acc-cyan);">${qty} unités</span>
+           </div>
+         `).join('') : '<div style="color:#8899aa; font-style:italic; font-size:12px;">Aucun objet trouvé...</div>'}
+      </div>
+    `;
+
+    v.style.display = 'flex';
   },
 
   async abandon() {
+    if (!confirm('💔 Abandonner ? Vous ne garderez que 50% de votre butin accumulé !')) return;
     try {
       await API.abandonRun(this.runId);
       navigate('player-list');

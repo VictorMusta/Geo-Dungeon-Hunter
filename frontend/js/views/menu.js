@@ -51,6 +51,8 @@ export const menuView = {
 
     document.getElementById('menu-gm').onclick = () => { if (state.playerId) navigate('gm-list'); };
     document.getElementById('menu-player').onclick = () => { if (state.playerId) navigate('player-list'); };
+    document.getElementById('menu-inv').onclick = () => { if (state.playerId) navigate('inventory'); };
+    document.getElementById('menu-auc').onclick = () => { if (state.playerId) navigate('auction'); };
     document.getElementById('menu-lb').onclick = () => navigate('leaderboard');
   }
 };

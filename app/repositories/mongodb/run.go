@@ -23,7 +23,7 @@ func (r *RunRepository) GetByPlayerID(playerID string) ([]models.Run, error) {
 	var runs []models.Run
 	var run models.Run
 	collection := r.db.Collection(run.Collection())
-	
+
 	opts := options.Find().SetSort(bson.D{{Key: "startedAt", Value: -1}})
 	cursor, err := collection.Find(context.TODO(), bson.M{"playerId": playerID}, opts)
 	if err != nil {
@@ -45,7 +45,7 @@ func (r *RunRepository) GetByID(id string) (models.Run, error) {
 	var run models.Run
 	var params models.QueryParams
 	collection := r.db.Collection(run.Collection())
-	
+
 	params.FilterClause = append(params.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(params)
 	err := collection.FindOne(context.TODO(), filter).Decode(&run)
@@ -72,7 +72,7 @@ func (r *RunRepository) Create(run *models.Run) error {
 func (r *RunRepository) Update(id string, run *models.Run) error {
 	var ru models.Run
 	collection := r.db.Collection(ru.Collection())
-	
+
 	doc, err := mongodb.ToDoc(run)
 	if err != nil {
 		return err
@@ -82,7 +82,20 @@ func (r *RunRepository) Update(id string, run *models.Run) error {
 	return err
 }
 
-func (r *RunRepository) ExecuteBossAttempt(ctx context.Context, runID string, playerID string, rewards models.RewardsGiven, isCompleted bool, killedStep models.KilledStep) error {
+func (r *RunRepository) ExecuteBossAttempt(ctx context.Context, runID string, killedStep models.KilledStep) error {
+	collection := r.db.Collection("run")
+
+	update := bson.M{
+		"$push": bson.M{"killedSteps": killedStep},
+		"$inc":  bson.M{"currentStep": 1},
+		"$set":  bson.M{"updatedAt": time.Now()},
+	}
+
+	_, err := collection.UpdateOne(ctx, bson.M{"customID": runID}, update)
+	return err
+}
+
+func (r *RunRepository) CommitRewards(ctx context.Context, runID string, playerID string, gold int64, items []models.RewardItem, newState string) error {
 	session, err := r.db.Client().StartSession()
 	if err != nil {
 		return err
@@ -94,34 +107,39 @@ func (r *RunRepository) ExecuteBossAttempt(ctx context.Context, runID string, pl
 		pColl := r.db.Collection("player")
 		iColl := r.db.Collection("inventory")
 
-		// 1. Update Run
-		runUpdate := bson.M{
-			"$push": bson.M{"killedSteps": killedStep},
-			"$inc":  bson.M{"currentStep": 1},
-		}
-		if isCompleted {
-			now := time.Now()
-			runUpdate["$set"] = bson.M{"state": "completed", "endedAt": now}
-		}
-		_, err := rColl.UpdateOne(sessCtx, bson.M{"customID": runID}, runUpdate)
-		if err != nil {
-			return nil, err
-		}
+		now := time.Now()
 
-		// 2. Update Player Gold
-		_, err = pColl.UpdateOne(sessCtx, bson.M{"customID": playerID}, bson.M{
-			"$inc": bson.M{"gold": rewards.Gold},
+		// 1. Update Run State
+		_, err := rColl.UpdateOne(sessCtx, bson.M{"customID": runID}, bson.M{
+			"$set": bson.M{
+				"state":     newState,
+				"endedAt":   now,
+				"updatedAt": now,
+			},
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		// 3. Update Inventory Items
-		for _, item := range rewards.Items {
+		// 2. Update Player Gold (if any)
+		if gold > 0 {
+			_, err = pColl.UpdateOne(sessCtx, bson.M{"customID": playerID}, bson.M{
+				"$inc": bson.M{"gold": gold},
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// 3. Update Inventory (if any)
+		for _, item := range items {
+			if item.Qty <= 0 {
+				continue
+			}
 			filter := bson.M{"playerId": playerID, "itemId": item.ItemID}
 			update := bson.M{
 				"$inc": bson.M{"qty": int64(item.Qty)},
-				"$set": bson.M{"updatedAt": time.Now()},
+				"$set": bson.M{"updatedAt": now},
 				"$setOnInsert": bson.M{
 					"playerId": playerID,
 					"itemId":   item.ItemID,

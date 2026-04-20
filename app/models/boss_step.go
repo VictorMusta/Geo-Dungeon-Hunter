@@ -3,9 +3,9 @@ package models
 import "time"
 
 type Location struct {
-	Lat          float64 `bson:"lat" json:"lat" validate:"required"`
-	Lon          float64 `bson:"lon" json:"lon" validate:"required"`
-	RadiusMeters float64 `bson:"radiusMeters" json:"radiusMeters" validate:"required,gt=0"`
+	Lat          float64  `bson:"lat" json:"lat" validate:"required"`
+	Lon          float64  `bson:"lon" json:"lon" validate:"required"`
+	RadiusMeters *float64 `bson:"radiusMeters" json:"radiusMeters" validate:"required"`
 }
 
 type LootEntry struct {
@@ -23,8 +23,8 @@ type BossStep struct {
 	Emoji           string      `bson:"emoji" json:"emoji"`
 	Location        Location    `bson:"location" json:"location" validate:"required"`
 	ZoneDescription string      `bson:"zoneDescription" json:"zoneDescription"`
-	Difficulty      int         `bson:"difficulty" json:"difficulty" validate:"required,min=1,max=10"`
-	GoldReward      int64       `bson:"goldReward" json:"goldReward"`
+	Difficulty      *int        `bson:"difficulty" json:"difficulty" validate:"required,min=1,max=10"`
+	GoldReward      *int64      `bson:"goldReward" json:"goldReward"`
 	LootTable       []LootEntry `bson:"lootTable,omitempty" json:"lootTable,omitempty"`
 	CreatedAt       time.Time   `bson:"createdAt" json:"createdAt"`
 	UpdatedAt       time.Time   `bson:"updatedAt" json:"updatedAt"`

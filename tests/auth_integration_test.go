@@ -31,7 +31,7 @@ func TestPlayerRegistrationAndLogin(t *testing.T) {
 
 	var regResponse map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &regResponse)
-	
+
 	token := regResponse["token"].(string)
 	if token == "" {
 		t.Error("Expected token in registration response, got empty")
@@ -53,7 +53,7 @@ func TestPlayerRegistrationAndLogin(t *testing.T) {
 
 	var loginResponse map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &loginResponse)
-	
+
 	if loginResponse["token"] == "" {
 		t.Error("Expected token in login response, got empty")
 	}
@@ -64,7 +64,7 @@ func TestLogin_IncorrectPassword(t *testing.T) {
 	router := SetupFullTestRouter(db)
 
 	playerName := "TestWarrior"
-	
+
 	// Create player first
 	regPayload := map[string]interface{}{
 		"display_name": playerName,

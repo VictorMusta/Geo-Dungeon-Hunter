@@ -10,7 +10,7 @@ type AuctionRepository interface {
 	GetByID(id string) (models.Listing, error)
 	Create(listing *models.Listing) error
 	Update(id string, listing *models.Listing) error
-	
+
 	// Transactional operations
 	BuyListing(ctx context.Context, buyerID, listingID string, priceTotal int64, sellerID string, itemID string, qty int, trade *models.Trade) error
 }

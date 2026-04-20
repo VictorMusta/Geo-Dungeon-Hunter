@@ -70,11 +70,14 @@ func TestFullGameplayCycle(t *testing.T) {
 	assert.NotEmpty(t, dungeonID, "Expected non-empty dungeonID")
 
 	// 4. Add Boss Step
+	gold := int64(100)
+	diff := 5
+	radius := float64(100)
 	stepData := models.BossStep{
 		Name:       "Giant Spider",
-		GoldReward: 100,
-		Difficulty: 5,
-		Location:   models.Location{Lat: 48.8566, Lon: 2.3522, RadiusMeters: 100},
+		GoldReward: &gold,
+		Difficulty: &diff,
+		Location:   models.Location{Lat: 48.8566, Lon: 2.3522, RadiusMeters: &radius},
 	}
 	body, _ = json.Marshal(stepData)
 	req = httptest.NewRequest("POST", fmt.Sprintf("/v1/mj/dungeons/%s/steps", dungeonID), bytes.NewBuffer(body))

@@ -17,4 +17,3 @@ func main() {
 	srv := server.GetServer()
 	srv.ListenAndServe()
 }
- 

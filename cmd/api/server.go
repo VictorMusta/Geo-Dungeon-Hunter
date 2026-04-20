@@ -52,6 +52,8 @@ func newDungeonsServer() error {
 	}
 
 	srv.Database = client.Database("dungeons")
+	server.SetServer(srv)
+
 	player.SetupRouter(srv.Router)
 	item.SetupRouter(srv.Router)
 	dungeon.SetupRouter(srv.Router)
@@ -59,8 +61,6 @@ func newDungeonsServer() error {
 	inventory.SetupRouter(srv.Router)
 	auction.SetupRouter(srv.Router)
 	leaderboard.SetupRouter(srv.Router)
-
-	server.SetServer(srv)
 
 	return nil
 }

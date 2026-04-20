@@ -15,7 +15,7 @@ func HashAndSalt(pwd string) ([]byte, error) {
 	return hash, err
 }
 
-/* 
+/*
 	Called in the auth controller.
 	Is used to check if the password is correct with the user's password in the database.
 */
@@ -67,6 +67,6 @@ func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase int) 
 		j := secureRandInt(i + 1)
 		inRune[i], inRune[j] = inRune[j], inRune[i]
 	}
-	
+
 	return string(inRune)
 }

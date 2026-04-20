@@ -5,6 +5,7 @@ export const gmListView = {
   async init() {
     document.getElementById('gml-back').onclick = () => navigate('menu');
     document.getElementById('gml-new').onclick = () => this.createDungeon();
+    document.getElementById('gml-forge').onclick = () => navigate('gm-items');
     await this.load();
   },
 

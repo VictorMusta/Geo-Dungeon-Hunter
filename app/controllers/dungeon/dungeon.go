@@ -64,6 +64,29 @@ func (ctrl *Dungeon) Update(ctx *gin.Context) {
 	common.SendResponse(ctx, http.StatusOK, models.Success(http.StatusOK, "dungeon.Update.OK", "dungeon updated"))
 }
 
+func (ctrl *Dungeon) UpdateFull(ctx *gin.Context) {
+	var in models.DungeonFullUpdate
+
+	if err := ctx.BindJSON(&in); err != nil {
+		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "dungeon.UpdateFull.BadRequest", err))
+		return
+	}
+
+	id := ctx.Param("id")
+	if err := ctrl.DungeonService.UpdateFull(id, &in); err != nil {
+		status := http.StatusBadRequest
+		if err.Error() == "dungeon not found" {
+			status = http.StatusNotFound
+		} else if err.Error() == "only draft dungeons can be modified" {
+			status = http.StatusConflict
+		}
+		common.SendResponse(ctx, status, models.KnownError(status, "dungeon.UpdateFull.Error", err))
+		return
+	}
+
+	common.SendResponse(ctx, http.StatusOK, models.Success(http.StatusOK, "dungeon.UpdateFull.OK", "dungeon and steps updated"))
+}
+
 func (ctrl *Dungeon) Publish(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if err := ctrl.DungeonService.Publish(id); err != nil {

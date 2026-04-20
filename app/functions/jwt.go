@@ -10,7 +10,7 @@ import (
 // GenerateToken creates a new JWT for a player
 func GenerateToken(playerID string) (string, error) {
 	srv := server.GetServer()
-	
+
 	claims := jwt.MapClaims{
 		"sub": playerID,
 		"exp": time.Now().Add(time.Hour * 24).Unix(), // valid for 24 hours

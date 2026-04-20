@@ -53,3 +53,28 @@ func (s *Item) Create(in *models.ItemDef) (*models.ItemDef, error) {
 func (s *Item) GetByID(id string) (models.ItemDef, error) {
 	return s.repo.GetByID(id)
 }
+
+func (s *Item) Update(id string, in *models.ItemDef) error {
+	if err := s.validate.Struct(in); err != nil {
+		return err
+	}
+
+	item, err := s.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	item.Name = in.Name
+	item.Type = in.Type
+	item.Rarity = in.Rarity
+	item.Description = in.Description
+	item.Tradable = in.Tradable
+	item.BaseValue = in.BaseValue
+	item.UpdatedAt = time.Now()
+
+	return s.repo.Update(id, &item)
+}
+
+func (s *Item) Delete(id string) error {
+	return s.repo.Delete(id)
+}

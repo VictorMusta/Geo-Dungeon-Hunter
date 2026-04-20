@@ -11,7 +11,8 @@ type RunRepository interface {
 	GetActiveRun(playerID, dungeonId string) (models.Run, error)
 	Create(run *models.Run) error
 	Update(id string, run *models.Run) error
-	
+
 	// Transactional operations for gameplay
-	ExecuteBossAttempt(ctx context.Context, runID string, playerID string, rewards models.RewardsGiven, isCompleted bool, killedStep models.KilledStep) error
+	ExecuteBossAttempt(ctx context.Context, runID string, killedStep models.KilledStep) error
+	CommitRewards(ctx context.Context, runID string, playerID string, gold int64, items []models.RewardItem, newState string) error
 }

@@ -23,7 +23,7 @@ func (r *AuctionRepository) GetByStatus(status string) ([]models.Listing, error)
 	var listings []models.Listing
 	var l models.Listing
 	collection := r.db.Collection(l.Collection())
-	
+
 	cursor, err := collection.Find(context.TODO(), bson.M{"status": status})
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (r *AuctionRepository) Create(listing *models.Listing) error {
 func (r *AuctionRepository) Update(id string, listing *models.Listing) error {
 	var l models.Listing
 	collection := r.db.Collection(l.Collection())
-	
+
 	_, err := collection.UpdateOne(context.TODO(), bson.M{"customID": id}, bson.M{"$set": listing})
 	return err
 }
@@ -75,37 +75,37 @@ func (r *AuctionRepository) BuyListing(ctx context.Context, buyerID, listingID s
 		tColl := r.db.Collection("trade")
 
 		// 1. Update Listing Status
-		res, err := lColl.UpdateOne(sessCtx, 
-			bson.M{"customID": listingID, "status": "active"}, 
+		res, err := lColl.UpdateOne(sessCtx,
+			bson.M{"customID": listingID, "status": "active"},
 			bson.M{"$set": bson.M{"status": "sold", "updatedAt": time.Now()}})
 		if err != nil || res.MatchedCount == 0 {
 			return nil, errors.New("listing no longer available")
 		}
 
 		// 2. Subtract Gold from Buyer
-		res, err = pColl.UpdateOne(sessCtx, 
-			bson.M{"customID": buyerID, "gold": bson.M{"$gte": priceTotal}}, 
+		res, err = pColl.UpdateOne(sessCtx,
+			bson.M{"customID": buyerID, "gold": bson.M{"$gte": priceTotal}},
 			bson.M{"$inc": bson.M{"gold": -priceTotal}})
 		if err != nil || res.MatchedCount == 0 {
 			return nil, errors.New("insufficient gold")
 		}
 
 		// 3. Add Gold to Seller
-		_, err = pColl.UpdateOne(sessCtx, 
-			bson.M{"customID": sellerID}, 
+		_, err = pColl.UpdateOne(sessCtx,
+			bson.M{"customID": sellerID},
 			bson.M{"$inc": bson.M{"gold": priceTotal}})
 		if err != nil {
 			return nil, err
 		}
 
 		// 4. Update Buyer Inventory
-		_, err = vColl.UpdateOne(sessCtx, 
-			bson.M{"playerId": buyerID, "itemId": itemID}, 
+		_, err = vColl.UpdateOne(sessCtx,
+			bson.M{"playerId": buyerID, "itemId": itemID},
 			bson.M{
-				"$inc": bson.M{"qty": int64(qty)},
-				"$set": bson.M{"updatedAt": time.Now()},
+				"$inc":         bson.M{"qty": int64(qty)},
+				"$set":         bson.M{"updatedAt": time.Now()},
 				"$setOnInsert": bson.M{"playerId": buyerID, "itemId": itemID},
-			}, 
+			},
 			options.UpdateOne().SetUpsert(true))
 		if err != nil {
 			return nil, err

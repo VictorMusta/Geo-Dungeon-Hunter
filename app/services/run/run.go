@@ -13,11 +13,11 @@ import (
 )
 
 type Run struct {
-	repo       repositories.RunRepository
+	repo        repositories.RunRepository
 	dungeonRepo repositories.DungeonRepository
-	bsRepo     repositories.BossStepRepository
-	playerRepo repositories.PlayerRepository
-	validate   *validator.Validate
+	bsRepo      repositories.BossStepRepository
+	playerRepo  repositories.PlayerRepository
+	validate    *validator.Validate
 }
 
 func New(
@@ -91,12 +91,28 @@ func (s *Run) Abandon(id string) error {
 		return errors.New("only active runs can be abandoned")
 	}
 
-	now := time.Now()
-	r.State = "abandoned"
-	r.EndedAt = &now
-	r.UpdatedAt = now
+	// Calculate 50% of earned rewards
+	var totalGold int64
+	itemMap := make(map[string]int)
 
-	return s.repo.Update(id, &r)
+	for _, ks := range r.KilledSteps {
+		totalGold += ks.RewardsGiven.Gold
+		for _, it := range ks.RewardsGiven.Items {
+			itemMap[it.ItemID] += it.Qty
+		}
+	}
+
+	// Apply 50% penalty
+	finalGold := int64(float64(totalGold) * 0.5)
+	var finalItems []models.RewardItem
+	for id, qty := range itemMap {
+		finalQty := int(float64(qty) * 0.5)
+		if finalQty > 0 {
+			finalItems = append(finalItems, models.RewardItem{ItemID: id, Qty: finalQty})
+		}
+	}
+
+	return s.repo.CommitRewards(context.TODO(), id, r.PlayerID, finalGold, finalItems, "abandoned")
 }
 
 type AttemptResult struct {
@@ -139,12 +155,20 @@ func (s *Run) AttemptBoss(runID, stepID string, lat, lon float64) (*AttemptResul
 
 	// Validate location
 	distance := functions.HaversineDistance(lat, lon, bs.Location.Lat, bs.Location.Lon)
-	if distance > bs.Location.RadiusMeters {
+	radius := float64(500)
+	if bs.Location.RadiusMeters != nil {
+		radius = *bs.Location.RadiusMeters
+	}
+	if distance > radius {
 		return nil, errors.New("NOT_IN_RANGE")
 	}
 
-	// Roll loot
-	rewards := models.RewardsGiven{Gold: bs.GoldReward}
+	// Roll loot for THIS boss
+	gold := int64(0)
+	if bs.GoldReward != nil {
+		gold = *bs.GoldReward
+	}
+	rewards := models.RewardsGiven{Gold: gold}
 	for _, loot := range bs.LootTable {
 		if rand.Float64() <= loot.DropRate {
 			qty := loot.MinQty
@@ -169,10 +193,48 @@ func (s *Run) AttemptBoss(runID, stepID string, lat, lon float64) (*AttemptResul
 		RewardsGiven: rewards,
 	}
 
-	// Execute transactional update in repository
-	err = s.repo.ExecuteBossAttempt(context.TODO(), runID, r.PlayerID, rewards, runCompleted, killedStep)
+	// Save progress (without committing to player account yet)
+	err = s.repo.ExecuteBossAttempt(context.TODO(), runID, killedStep)
 	if err != nil {
 		return nil, err
+	}
+
+	// If completed, commit ALL rewards + dungeon completion bonus
+	if runCompleted {
+		d, _ := s.dungeonRepo.GetByID(r.DungeonID)
+		
+		var totalGold int64 = rewards.Gold // include current boss
+		itemMap := make(map[string]int)
+		for _, it := range rewards.Items {
+			itemMap[it.ItemID] += it.Qty
+		}
+
+		// Also aggregate previous steps
+		for _, ks := range r.KilledSteps {
+			totalGold += ks.RewardsGiven.Gold
+			for _, it := range ks.RewardsGiven.Items {
+				itemMap[it.ItemID] += it.Qty
+			}
+		}
+
+		// Add Dungeon Completion Bonus
+		totalGold += d.CompletionGoldReward
+		for _, loot := range d.CompletionLootTable {
+			if rand.Float64() <= loot.DropRate {
+				qty := loot.MinQty + rand.Intn(loot.MaxQty-loot.MinQty+1)
+				itemMap[loot.ItemID] += qty
+			}
+		}
+
+		var finalItems []models.RewardItem
+		for id, qty := range itemMap {
+			finalItems = append(finalItems, models.RewardItem{ItemID: id, Qty: qty})
+		}
+
+		err = s.repo.CommitRewards(context.TODO(), runID, r.PlayerID, totalGold, finalItems, "completed")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &AttemptResult{

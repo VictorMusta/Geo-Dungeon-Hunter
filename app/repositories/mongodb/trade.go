@@ -26,12 +26,12 @@ func (r *TradeRepository) GetByPlayer(playerID string) ([]models.Trade, error) {
 	var trades []models.Trade
 	var t models.Trade
 	collection := r.db.Collection(t.Collection())
-	
+
 	filter := bson.M{"$or": []bson.M{
 		{"buyerId": playerID},
 		{"sellerId": playerID},
 	}}
-	
+
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err

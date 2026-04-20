@@ -76,3 +76,39 @@ func (ctrl *Item) GetByID(ctx *gin.Context) {
 	}
 	common.SendResponse(ctx, http.StatusOK, response)
 }
+
+func (ctrl *Item) Update(ctx *gin.Context) {
+	id := ctx.Param("id")
+	var in models.ItemDef
+
+	if err := ctx.BindJSON(&in); err != nil {
+		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "item.Update.BadRequest", err))
+		return
+	}
+
+	err := ctrl.ItemService.Update(id, &in)
+	if err != nil {
+		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "item.Update.Error", err))
+		return
+	}
+
+	common.SendResponse(ctx, http.StatusOK, models.WSResponse{
+		Meta: models.MetaResponse{ObjectName: "Item", TotalCount: 1, Count: 1},
+		Data: gin.H{"status": "updated"},
+	})
+}
+
+func (ctrl *Item) Delete(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	err := ctrl.ItemService.Delete(id)
+	if err != nil {
+		common.SendResponse(ctx, http.StatusInternalServerError, models.KnownError(http.StatusInternalServerError, "item.Delete.Error", err))
+		return
+	}
+
+	common.SendResponse(ctx, http.StatusOK, models.WSResponse{
+		Meta: models.MetaResponse{ObjectName: "Item", TotalCount: 1, Count: 1},
+		Data: gin.H{"status": "deleted"},
+	})
+}

@@ -20,11 +20,18 @@ type Dungeon struct {
 	Description string    `bson:"description" json:"description"`
 	CreatedBy   string    `bson:"createdBy" json:"createdBy" validate:"required"`
 	Area        Area      `bson:"area" json:"area"`
-	Status      string    `bson:"status" json:"status"`
-	CreatedAt   time.Time `bson:"createdAt" json:"createdAt"`
-	UpdatedAt   time.Time `bson:"updatedAt" json:"updatedAt"`
+	Status               string      `bson:"status" json:"status"`
+	CompletionGoldReward int64       `bson:"completionGoldReward" json:"completionGoldReward"`
+	CompletionLootTable  []LootEntry `bson:"completionLootTable,omitempty" json:"completionLootTable,omitempty"`
+	CreatedAt            time.Time   `bson:"createdAt" json:"createdAt"`
+	UpdatedAt            time.Time   `bson:"updatedAt" json:"updatedAt"`
 }
 
 func (d *Dungeon) Collection() string {
 	return "dungeon"
+}
+
+type DungeonFullUpdate struct {
+	Dungeon   Dungeon    `json:"dungeon"`
+	BossSteps []BossStep `json:"bossSteps"`
 }

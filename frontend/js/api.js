@@ -28,11 +28,14 @@ export const API = {
   getPlayers: () => request('GET', '/v1/players'),
 
   createItem: (item) => request('POST', '/v1/items', item),
+  updateItem: (id, item) => request('PUT', `/v1/items/${id}`, item),
+  deleteItem: (id) => request('DELETE', `/v1/items/${id}`),
   getItems: () => request('GET', '/v1/items'),
 
   createDungeon: (d) => request('POST', '/v1/mj/dungeons', d),
   getMJDungeons: (mjId) => request('GET', `/v1/mj/dungeons?mjId=${mjId}`),
   updateDungeon: (id, d) => request('PUT', `/v1/mj/dungeons/${id}`, d),
+  updateDungeonFull: (id, data) => request('PUT', `/v1/mj/dungeons/${id}/full`, data),
   publishDungeon: (id) => request('POST', `/v1/mj/dungeons/${id}/publish`),
   createStep: (did, s) => request('POST', `/v1/mj/dungeons/${did}/steps`, s),
   updateStep: (did, sid, s) => request('PUT', `/v1/mj/dungeons/${did}/steps/${sid}`, s),
@@ -49,6 +52,11 @@ export const API = {
     request('POST', `/v1/runs/${runId}/steps/${stepId}/attempt`, { lat, lon }),
 
   getInventory: (playerId) => request('GET', `/v1/inventory?playerId=${playerId}`),
+
+  createAuction: (listing) => request('POST', '/v1/auction/listings', listing),
+  getAuctions: () => request('GET', '/v1/auction/listings'),
+  buyAuction: (id, buyerId) => request('POST', `/v1/auction/listings/${id}/buy`, { buyerId }),
+  cancelAuction: (id) => request('POST', `/v1/auction/listings/${id}/cancel`),
 
   getLeaderboard: (type, limit = 10) => request('GET', `/v1/leaderboard?type=${type}&limit=${limit}`),
 };

@@ -9,4 +9,5 @@ type ItemRepository interface {
 	GetByID(id string) (models.ItemDef, error)
 	Create(item *models.ItemDef) error
 	Update(id string, item *models.ItemDef) error
+	Delete(id string) error
 }

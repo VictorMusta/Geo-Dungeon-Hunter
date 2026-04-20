@@ -22,7 +22,7 @@ func (r *InventoryRepository) GetByPlayerID(playerID string) ([]models.Inventory
 	var entries []models.InventoryEntry
 	var i models.InventoryEntry
 	collection := r.db.Collection(i.Collection())
-	
+
 	cursor, err := collection.Find(context.TODO(), bson.M{"playerId": playerID})
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (r *InventoryRepository) GetByItem(playerID, itemID string) (models.Invento
 func (r *InventoryRepository) Update(playerID string, itemID string, qtyDelta int64) error {
 	var i models.InventoryEntry
 	collection := r.db.Collection(i.Collection())
-	
+
 	filter := bson.M{"playerId": playerID, "itemId": itemID}
 	update := bson.M{
 		"$inc": bson.M{"qty": qtyDelta},

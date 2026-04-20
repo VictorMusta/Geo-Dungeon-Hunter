@@ -3,15 +3,15 @@ package leaderboard
 import (
 	controller "dungeons/app/controllers/leaderboard"
 	repo "dungeons/app/repositories/mongodb"
-	service "dungeons/app/services/leaderboard"
 	"dungeons/app/server"
+	service "dungeons/app/services/leaderboard"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter(g *gin.Engine) {
 	srv := server.GetServer()
-	
+
 	leaderboardRepo := repo.NewLeaderboardRepository(srv.Database)
 	leaderboardService := service.New(leaderboardRepo)
 	leaderboardController := controller.New(leaderboardService)

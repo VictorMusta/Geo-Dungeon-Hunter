@@ -46,19 +46,26 @@ func FilterConstructeur(params models.QueryParams, fq bson.M) bson.M {
 
 			key = filter[0]
 
+			// bypass conversion for ID fields
+			isID := strings.HasSuffix(strings.ToLower(key), "id")
+			
 			// conversion of the value into its data type
-			if vBool, sErr := strconv.ParseBool(filter[1]); sErr != nil {
-				if vInt, sErr := strconv.ParseInt(filter[1], 10, 64); sErr != nil {
-					if vFloat, sErr := strconv.ParseFloat(filter[1], 64); sErr != nil {
-						value = filter[1]
+			if !isID {
+				if vBool, sErr := strconv.ParseBool(filter[1]); sErr != nil {
+					if vInt, sErr := strconv.ParseInt(filter[1], 10, 64); sErr != nil {
+						if vFloat, sErr := strconv.ParseFloat(filter[1], 64); sErr != nil {
+							value = filter[1]
+						} else {
+							value = vFloat
+						}
 					} else {
-						value = vFloat
+						value = vInt
 					}
 				} else {
-					value = vInt
+					value = vBool
 				}
 			} else {
-				value = vBool
+				value = filter[1]
 			}
 
 			// operator management

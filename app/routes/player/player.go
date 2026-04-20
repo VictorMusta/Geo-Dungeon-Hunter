@@ -3,8 +3,8 @@ package player
 import (
 	controller "dungeons/app/controllers/player"
 	repo "dungeons/app/repositories/mongodb"
-	service "dungeons/app/services/player"
 	"dungeons/app/server"
+	service "dungeons/app/services/player"
 
 	"dungeons/app/middleware"
 	"github.com/gin-gonic/gin"
@@ -22,7 +22,7 @@ func SetupRouter(g *gin.Engine) {
 		{
 			players.POST("", playerController.Create)
 			players.POST("/login", playerController.Login)
-			
+
 			// Protected routes
 			protected := players.Group("")
 			protected.Use(middleware.AuthMiddleware())
@@ -31,7 +31,7 @@ func SetupRouter(g *gin.Engine) {
 				protected.GET("/:id", playerController.GetByID)
 				protected.POST("/:id", playerController.Update)
 			}
-			
+
 			players.GET("/IDS/:ids", playerController.GetByIDs)
 		}
 	}

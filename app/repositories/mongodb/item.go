@@ -23,7 +23,7 @@ func (r *ItemRepository) Get(params models.QueryParams) ([]models.ItemDef, error
 	var i models.ItemDef
 	collection := r.db.Collection(i.Collection())
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (r *ItemRepository) GetByID(id string) (models.ItemDef, error) {
 	collection := r.db.Collection(i.Collection())
 	params.FilterClause = append(params.FilterClause, "customID,"+id)
 	filter := mongodb.SelectConstructeur(params)
-	
+
 	err := collection.FindOne(context.TODO(), filter).Decode(&i)
 	return i, err
 }
@@ -60,7 +60,7 @@ func (r *ItemRepository) Create(item *models.ItemDef) error {
 func (r *ItemRepository) Update(id string, item *models.ItemDef) error {
 	var i models.ItemDef
 	collection := r.db.Collection(i.Collection())
-	
+
 	doc, err := mongodb.ToDoc(item)
 	if err != nil {
 		return err
@@ -71,6 +71,20 @@ func (r *ItemRepository) Update(id string, item *models.ItemDef) error {
 		return err
 	}
 	if result.MatchedCount == 0 {
+		return errors.New("item not found")
+	}
+	return nil
+}
+
+func (r *ItemRepository) Delete(id string) error {
+	var i models.ItemDef
+	collection := r.db.Collection(i.Collection())
+
+	result, err := collection.DeleteOne(context.TODO(), bson.M{"customID": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
 		return errors.New("item not found")
 	}
 	return nil
