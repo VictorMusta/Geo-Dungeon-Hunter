@@ -9,5 +9,4 @@ type LeaderboardEntry struct {
 type LeaderboardRepository interface {
 	GetByCompletions(limit int) ([]LeaderboardEntry, error)
 	GetByGold(limit int) ([]LeaderboardEntry, error)
-	GetBySpeed(dungeonID string, limit int) ([]LeaderboardEntry, error)
 }

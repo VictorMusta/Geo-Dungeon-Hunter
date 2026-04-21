@@ -33,7 +33,7 @@ export const menuView = {
         state.playerName = name;
         state.token = res.token; // Capture the JWT from the response
         
-        statusMsg.textContent = `✅ Cree !`;
+        statusMsg.textContent = `✅ Connexion réussie !`;
         statusMsg.className = 'status-msg ok';
         
         // Refresh the view and update global status bar

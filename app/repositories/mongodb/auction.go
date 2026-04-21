@@ -61,7 +61,7 @@ func (r *AuctionRepository) Update(id string, listing *models.Listing) error {
 	return err
 }
 
-func (r *AuctionRepository) BuyListing(ctx context.Context, buyerID, listingID string, priceTotal int64, sellerID string, itemID string, qty int, trade *models.Trade) error {
+func (r *AuctionRepository) BuyListing(ctx context.Context, buyerID, listingID string, priceTotal int64, sellerID string, itemID string, qty int) error {
 	session, err := r.db.Client().StartSession()
 	if err != nil {
 		return err
@@ -72,7 +72,6 @@ func (r *AuctionRepository) BuyListing(ctx context.Context, buyerID, listingID s
 		lColl := r.db.Collection("listing")
 		pColl := r.db.Collection("player")
 		vColl := r.db.Collection("inventory")
-		tColl := r.db.Collection("trade")
 
 		// 1. Update Listing Status
 		res, err := lColl.UpdateOne(sessCtx,
@@ -107,12 +106,6 @@ func (r *AuctionRepository) BuyListing(ctx context.Context, buyerID, listingID s
 				"$setOnInsert": bson.M{"playerId": buyerID, "itemId": itemID},
 			},
 			options.UpdateOne().SetUpsert(true))
-		if err != nil {
-			return nil, err
-		}
-
-		// 5. Create Trade Record
-		_, err = tColl.InsertOne(sessCtx, trade)
 		if err != nil {
 			return nil, err
 		}

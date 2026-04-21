@@ -35,10 +35,10 @@ func (p *Player) Create(in *models.Player) (*models.Player, error) {
 		return nil, err
 	}
 
-	// Check if pseudo already exists
-	_, err = p.repo.FindByDisplayName(in.DisplayName)
+	// Check if pseudo already exists (Get-or-Create behavior for UX)
+	existing, err := p.repo.FindByDisplayName(in.DisplayName)
 	if err == nil {
-		return nil, errors.New("pseudo déjà utilisé")
+		return &existing, nil
 	}
 
 	var player models.Player

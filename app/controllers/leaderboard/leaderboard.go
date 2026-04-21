@@ -38,15 +38,8 @@ func (ctrl *Leaderboard) Get(ctx *gin.Context) {
 		entries, err = ctrl.LeaderboardService.GetByCompletions(limit)
 	case "gold":
 		entries, err = ctrl.LeaderboardService.GetByGold(limit)
-	case "speed":
-		dungeonID := ctx.Query("dungeonId")
-		if dungeonID == "" {
-			common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "leaderboard.Get.BadRequest", errors.New("dungeonId query parameter is required for speed leaderboard")))
-			return
-		}
-		entries, err = ctrl.LeaderboardService.GetBySpeed(dungeonID, limit)
 	default:
-		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "leaderboard.Get.BadRequest", errors.New("type must be one of: completions, gold, speed")))
+		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "leaderboard.Get.BadRequest", errors.New("type must be one of: completions, gold")))
 		return
 	}
 

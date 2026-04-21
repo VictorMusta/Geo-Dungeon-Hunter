@@ -4,25 +4,25 @@
 > ### 👨‍🏫 Note à l'attention du correcteur
 > Bienvenue sur le projet **Dungeon Real-World API**. Pour faciliter votre évaluation, j'ai mis en place un **Makefile** automatisant l'intégralité du cycle de vie du projet (installation, lancement, tests et livraison).
 >
-> #### 🚀 Installation & Lancement Rapide
-> 1. **Installation** : `make install` (Installe les dépendances Go et Node)
-> 2. **Infrastructure** : `make up` (Lance MongoDB via Docker)
-> 3. **Lancement Global** : `make dev` (Lance le backend Air et le frontend simultanément)
+> #### 🚀 Lancement Rapide (Dev)
+> La commande suivante lance **tout le projet** (Backend Node/Go via Air + Frontend) en une seule fois :
+> ```bash
+> make dev
+> ```
+>
+> #### 🔧 Pré-requis (Si première fois)
+> 1. **Infrastructure** : `make up` (Lance MongoDB via Docker)
+> 2. **Installation** : `make install` (Installe les dépendances Go et Node)
 >
 > #### 🧪 Tests & Qualité
 > - **Tests Unitaires** : `make test`
 > - **Tests d'Intégration** : `make test-integration` (Nécessite `make up`)
 >
-> #### 📦 Outils de surveillance inclus
-> - **Mongo Express** : [http://localhost:8081](http://localhost:8081)
-> - **Swagger UI** : [http://localhost:8082](http://localhost:8082)
->
-> #### 📮 Livraison
-> Pour générer une archive propre pour le rendu (sans les dossiers lourds type `node_modules`), utilisez la commande :
+> #### 📦 Rendu final
+> Pour générer une archive propre pour le rendu :
 > ```bash
 > make zip
 > ```
-> Cela créera un fichier `delivery.zip` contenant uniquement le code source et les configurations nécessaires.
 
 ---
 
@@ -146,15 +146,6 @@ A Run represents one player playing one dungeon.
 -   status (active / sold / cancelled / expired)
 -   createdAt
 -   expiresAt
-
-### Trade (optional but recommended)
-
--   buyerId
--   sellerId
--   listingId
--   qty
--   totalPrice
--   createdAt
 
 ------------------------------------------------------------------------
 

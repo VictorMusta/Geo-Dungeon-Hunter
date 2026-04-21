@@ -33,7 +33,6 @@ export const leaderboardView = {
       }
       const fmt = (e) => {
         if (this.tab === 'gold') return `💰 ${e.gold || e.score || 0}`;
-        if (this.tab === 'speed') return `⚡ ${((e.bestTime || e.score || 0) / 1000).toFixed(1)}s`;
         return `🏰 ${e.completions || e.score || 0}`;
       };
       const colorAccents = ['var(--acc-magenta)', 'var(--acc-cyan)', 'var(--acc-yellow)'];

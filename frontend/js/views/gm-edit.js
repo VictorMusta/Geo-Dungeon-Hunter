@@ -28,6 +28,7 @@ export const gmEditView = {
     document.getElementById('gme-show-map').onclick = () => {
       this.toggleMap(true);
       if (this.steps.length > 0) map.fitToItems();
+      toast('💡 Clique droit sur la carte pour ajouter un boss !');
     };
     document.getElementById('gme-hide-map').onclick = () => this.toggleMap(false);
 

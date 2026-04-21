@@ -113,18 +113,8 @@ func (s *Auction) Buy(listingID, buyerID string, qty int) error {
 		return errors.New("Tu ne peux pas acheter ta propre offre")
 	}
 
-	trade := &models.Trade{
-		CustomID:   functions.NewUUID(),
-		BuyerID:    buyerID,
-		SellerID:   listing.SellerID,
-		ListingID:  listingID,
-		Qty:        qty,
-		TotalPrice: totalPrice,
-		CreatedAt:  time.Now(),
-	}
-
 	// Atomic transaction in repository
-	return s.repo.BuyListing(context.TODO(), buyerID, listingID, totalPrice, listing.SellerID, listing.ItemID, qty, trade)
+	return s.repo.BuyListing(context.TODO(), buyerID, listingID, totalPrice, listing.SellerID, listing.ItemID, qty)
 }
 
 func (s *Auction) Cancel(listingID, sellerID string) error {

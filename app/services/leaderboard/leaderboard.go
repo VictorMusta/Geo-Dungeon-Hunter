@@ -19,7 +19,3 @@ func (s *Leaderboard) GetByCompletions(limit int) ([]repositories.LeaderboardEnt
 func (s *Leaderboard) GetByGold(limit int) ([]repositories.LeaderboardEntry, error) {
 	return s.repo.GetByGold(limit)
 }
-
-func (s *Leaderboard) GetBySpeed(dungeonID string, limit int) ([]repositories.LeaderboardEntry, error) {
-	return s.repo.GetBySpeed(dungeonID, limit)
-}
