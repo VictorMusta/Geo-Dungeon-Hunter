@@ -23,13 +23,23 @@
   <div class="floating-decoration bounce-slow" style="bottom:10%; left:5%; font-size: 50px; opacity: 0.3;">💎</div>
   <div class="floating-decoration float-slow" style="bottom:5%; right:10%; font-size: 70px; opacity: 0.4;">💣</div>
 
+  <!-- USER STATUS BAR -->
+  <div id="user-status-bar" style="display:none;">
+    <div class="usb-content">
+      <span class="status-dot"></span>
+      <span id="usb-name">Pseudo</span>
+      <button class="btn btn-sm" id="usb-logout">Bye bye 🚪</button>
+    </div>
+  </div>
+
   <!-- MENU -->
+
   <div id="view-menu" class="view active">
     <div class="center-col">
       <h1 class="title text-gradient shadow-magenta">🏰 DUNGEON QUEST 🗡️</h1>
       <p class="subtitle bounce-slow">Le donjon dont TU es le héros... en vrai !</p>
       
-      <div class="form-box">
+      <div id="menu-login-box" class="form-box">
         <label>Ton identité secrète</label>
         <input type="text" id="menu-name" placeholder="Ex: GuerrierFou" />
         <button class="btn w-full mt-4" id="menu-create">Creer mon personnage 🚀</button>
@@ -114,7 +124,7 @@
                 <h2 class="text-gradient" style="font-size:32px;">📍 Cartographie du Mal</h2>
                 <p style="color:var(--acc-cyan); font-weight:bold; font-size:12px;">CLIC DROIT = NOUVEAU BOSS | DRAG & DROP = REPOSITIONNER</p>
             </div>
-            <button class="btn btn-sm" id="gme-hide-map" style="background:var(--acc-magenta); border-color:white;">✅ Terminer le placement</button>
+            <button class="btn btn-sm" id="gme-hide-map" style="background:var(--acc-magenta); border-color:white;">✅ Terminer</button>
         </div>
         <div class="modal-map-content">
             <div id="gme-map" style="width:100%; height:100%;"></div>
@@ -217,33 +227,41 @@
         <div id="pr-map" class="leaflet-container-custom"></div>
       </div>
       <aside class="sidebar" id="pr-sidebar">
-        <h2 id="pr-title" style="color:#e94560;">...</h2>
-        <div id="pr-state" class="status-msg"></div>
-        <hr>
-        <h3>Boss Steps</h3>
-        <div id="pr-steps" class="card-list sidebar-scroll"></div>
-        <hr>
-        <div class="gold-row">
-          <span>💰 Gold</span>
-          <span id="pr-gold" class="gold-value">0</span>
+        <!-- HEADER -->
+        <div class="form-box" style="padding: 15px; border-color: var(--acc-cyan); margin-bottom: 0;">
+            <h2 id="pr-title" class="text-gradient" style="font-size: 24px; margin-bottom: 10px;">...</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div id="pr-state" style="font-size: 11px; font-weight: 900; opacity: 0.8; text-transform: uppercase;">...</div>
+                <div style="color: var(--acc-yellow); font-weight: 900; font-size: 18px;">💰 <span id="pr-gold">0</span></div>
+            </div>
         </div>
-        <button class="btn" id="pr-attack" style="width:100%;" disabled>⚔️ Attaquer le boss !</button>
-        <div id="pr-msg" class="status-msg" style="min-height:50px;"></div>
-        <hr>
-        <div class="btn-row">
-          <button class="btn btn-secondary btn-sm" id="pr-quit">← Quitter</button>
-          <button class="btn btn-sm" id="pr-abandon" style="color:#e94560;">Abandonner</button>
+
+        <!-- BODY -->
+        <h3 class="shadow-cyan" style="font-size:14px; opacity:0.6; margin-top:20px;">Gardiens à vaincre</h3>
+        <div id="pr-steps" class="card-list sidebar-scroll" style="flex:1;"></div>
+
+        <!-- FOOTER -->
+        <div class="form-box" style="padding: 15px; border-color: var(--acc-magenta); box-shadow: 0 -10px 40px rgba(0,0,0,0.5); margin-top: auto;">
+            <button class="btn w-full" id="pr-attack" disabled>⚔️ Attaquer !</button>
+            <div id="pr-msg" class="status-msg" style="min-height:24px; font-size:12px; text-align:center; overflow:hidden;"></div>
+            
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn btn-secondary btn-sm w-full" id="pr-quit">← Quitter</button>
+                <button class="btn btn-sm w-full" id="pr-abandon" style="color:var(--acc-orange); border-color:var(--acc-orange);">💔 Abandonner</button>
+            </div>
         </div>
       </aside>
     </div>
-    <div id="pr-victory" class="victory-overlay" style="display:none;">
-      <div class="victory-box">
-        <h1 class="text-gradient shadow-yellow" style="font-size: 32px; margin-bottom: 20px;">🏆 DONJON TERMINE ! 🏆</h1>
-        <div id="pr-victory-content" style="background:rgba(255,255,255,0.05); padding:20px; border-radius:var(--radius-btn); border: 2px solid var(--acc-yellow); margin-bottom:20px; text-align:left;">
-           <div id="pr-victory-text" style="font-weight:bold; margin-bottom:10px;"></div>
-           <div id="pr-victory-rewards" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+    <!-- VICTORY OVERLAY -->
+    <div id="pr-victory" class="modal-overlay">
+      <div class="modal-box" style="max-width: 500px; text-align: center;">
+        <h1 class="text-gradient shadow-yellow mb-4" style="font-size: 32px;">🏆 DUNGEON CLEAR !</h1>
+        <div id="pr-victory-content" class="form-box" style="border-color: var(--acc-yellow); text-align: left; background: rgba(0,0,0,0.2);">
+           <p id="pr-victory-text" style="font-weight: bold; color: var(--acc-cyan); margin-bottom: 15px; text-align:center;"></p>
+           <div id="pr-victory-rewards"></div>
         </div>
-        <button class="btn" id="pr-victory-ok" style="width:100%;">EXCELLENT ! ✨</button>
+        <button class="btn w-full mt-4" id="pr-victory-ok">EXCELLENT ! ✨</button>
       </div>
     </div>
   </div>
@@ -290,6 +308,45 @@
         <button class="tab" data-key="mine">🏷️ Mes Ventes</button>
       </div>
       <div id="auc-list" class="card-list" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SELL MODAL -->
+  <div id="modal-sell" class="modal-overlay">
+    <div class="modal-box" style="max-width: 500px;">
+      <h2 class="text-gradient shadow-cyan mb-4">🏷️ Mettre en vente</h2>
+      <p id="sell-item-name" class="subtitle" style="font-size:18px; margin-bottom:20px;"></p>
+      
+      <div class="form-box" style="box-shadow: none; border-color: var(--acc-cyan);">
+        <div class="form-group">
+          <label>Quantité à vendre (Max: <span id="sell-max-qty">0</span>)</label>
+          <input type="number" id="sell-qty" value="1" min="1" />
+        </div>
+        <div class="form-group mt-4">
+          <label>Prix unitaire (Gold 💰)</label>
+          <input type="number" id="sell-price" value="10" min="1" />
+        </div>
+        <p style="font-size: 12px; color: var(--acc-yellow); margin-top: 10px; opacity: 0.8;">Total estimé : <span id="sell-total">10</span> 💰</p>
+      </div>
+
+      <div style="display:flex; gap:16px; margin-top:30px;">
+        <button class="btn btn-secondary w-full" id="sell-cancel">Annuler</button>
+        <button class="btn w-full" id="sell-confirm">Confirmer 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM MODAL -->
+  <div id="modal-confirm" class="modal-overlay">
+    <div class="modal-box" style="max-width: 450px; text-align: center;">
+      <div id="confirm-icon" style="font-size: 50px; margin-bottom: 20px;">❓</div>
+      <h2 id="confirm-title" class="text-gradient shadow-magenta mb-4">Confirmation</h2>
+      <p id="confirm-msg" class="subtitle" style="font-size:18px; margin-bottom:30px;"></p>
+      
+      <div style="display:flex; gap:16px;">
+        <button class="btn btn-secondary w-full" id="confirm-cancel">Non, annuler</button>
+        <button class="btn w-full" id="confirm-ok">Oui, foncer ! 🚀</button>
+      </div>
     </div>
   </div>
 

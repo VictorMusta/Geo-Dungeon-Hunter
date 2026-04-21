@@ -55,8 +55,8 @@ export const API = {
 
   createAuction: (listing) => request('POST', '/v1/auction/listings', listing),
   getAuctions: () => request('GET', '/v1/auction/listings'),
-  buyAuction: (id, buyerId) => request('POST', `/v1/auction/listings/${id}/buy`, { buyerId }),
-  cancelAuction: (id) => request('POST', `/v1/auction/listings/${id}/cancel`),
+  buyAuction: (id, buyerId, qty = 1) => request('POST', `/v1/auction/listings/${id}/buy`, { buyerId, qty }),
+  cancelAuction: (id, sellerId) => request('POST', `/v1/auction/listings/${id}/cancel`, { sellerId }),
 
   getLeaderboard: (type, limit = 10) => request('GET', `/v1/leaderboard?type=${type}&limit=${limit}`),
 };

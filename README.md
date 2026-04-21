@@ -1,5 +1,31 @@
 # 🏰 Dungeon Real-World API -- Student Project
 
+> [!IMPORTANT]
+> ### 👨‍🏫 Note à l'attention du correcteur
+> Bienvenue sur le projet **Dungeon Real-World API**. Pour faciliter votre évaluation, j'ai mis en place un **Makefile** automatisant l'intégralité du cycle de vie du projet (installation, lancement, tests et livraison).
+>
+> #### 🚀 Installation & Lancement Rapide
+> 1. **Installation** : `make install` (Installe les dépendances Go et Node)
+> 2. **Infrastructure** : `make up` (Lance MongoDB via Docker)
+> 3. **Lancement Global** : `make dev` (Lance le backend Air et le frontend simultanément)
+>
+> #### 🧪 Tests & Qualité
+> - **Tests Unitaires** : `make test`
+> - **Tests d'Intégration** : `make test-integration` (Nécessite `make up`)
+>
+> #### 📦 Outils de surveillance inclus
+> - **Mongo Express** : [http://localhost:8081](http://localhost:8081)
+> - **Swagger UI** : [http://localhost:8082](http://localhost:8082)
+>
+> #### 📮 Livraison
+> Pour générer une archive propre pour le rendu (sans les dossiers lourds type `node_modules`), utilisez la commande :
+> ```bash
+> make zip
+> ```
+> Cela créera un fichier `delivery.zip` contenant uniquement le code source et les configurations nécessaires.
+
+---
+
 ## 📌 Project Overview
 
 This project consists of building a REST API in Go for a real-world

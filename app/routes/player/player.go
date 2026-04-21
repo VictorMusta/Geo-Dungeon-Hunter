@@ -13,6 +13,7 @@ import (
 func SetupRouter(g *gin.Engine) {
 	srv := server.GetServer()
 	playerRepo := repo.NewPlayerRepository(srv.Database)
+	_ = playerRepo.EnsureIndexes() // Create unique indexes
 	servicesPlayer := service.New(playerRepo)
 	playerController := controller.New(servicesPlayer)
 

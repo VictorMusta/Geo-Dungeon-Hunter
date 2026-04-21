@@ -26,6 +26,14 @@ func (ctrl *Run) Create(ctx *gin.Context) {
 		return
 	}
 
+	// Securely set player from JWT
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, "run.Create.Unauthorized", errors.New("authentication required")))
+		return
+	}
+	in.PlayerID = playerID.(string)
+
 	r, err := ctrl.RunService.Create(&in)
 	if err != nil {
 		status := http.StatusBadRequest
@@ -49,13 +57,14 @@ func (ctrl *Run) Create(ctx *gin.Context) {
 }
 
 func (ctrl *Run) Get(ctx *gin.Context) {
-	playerID := ctx.Query("playerId")
-	if playerID == "" {
-		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "run.Get.BadRequest", errors.New("playerId query parameter is required")))
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, "run.Get.Unauthorized", errors.New("authentication required")))
 		return
 	}
+	uid := playerID.(string)
 
-	runs, err := ctrl.RunService.GetByPlayerID(playerID)
+	runs, err := ctrl.RunService.GetByPlayerID(uid)
 	if err != nil {
 		common.SendResponse(ctx, http.StatusInternalServerError, models.KnownError(http.StatusInternalServerError, "run.Get.Error", err))
 		return
@@ -92,6 +101,12 @@ func (ctrl *Run) GetByID(ctx *gin.Context) {
 func (ctrl *Run) Abandon(ctx *gin.Context) {
 	id := ctx.Param("id")
 
+	// Ownership check
+	if ok, err := ctrl.checkRunOwnership(ctx, id); !ok {
+		common.SendResponse(ctx, http.StatusForbidden, models.KnownError(http.StatusForbidden, "run.Abandon.Forbidden", err))
+		return
+	}
+
 	if err := ctrl.RunService.Abandon(id); err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "run not found" {
@@ -106,6 +121,13 @@ func (ctrl *Run) Abandon(ctx *gin.Context) {
 
 func (ctrl *Run) AttemptBoss(ctx *gin.Context) {
 	runID := ctx.Param("id")
+
+	// Ownership check
+	if ok, err := ctrl.checkRunOwnership(ctx, runID); !ok {
+		common.SendResponse(ctx, http.StatusForbidden, models.KnownError(http.StatusForbidden, "attempt.Forbidden", err))
+		return
+	}
+
 	stepID := ctx.Param("stepId")
 
 	var body struct {
@@ -140,4 +162,21 @@ func (ctrl *Run) AttemptBoss(ctx *gin.Context) {
 		Data: result,
 	}
 	common.SendResponse(ctx, http.StatusOK, response)
+}
+
+func (ctrl *Run) checkRunOwnership(ctx *gin.Context, runID string) (bool, error) {
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		return false, errors.New("unauthorized: missing playerID in context")
+	}
+
+	r, err := ctrl.RunService.GetByID(runID)
+	if err != nil {
+		return false, err
+	}
+
+	if r.PlayerID != playerID.(string) {
+		return false, errors.New("forbidden: you do not own this run")
+	}
+	return true, nil
 }

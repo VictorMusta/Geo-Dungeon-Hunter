@@ -92,10 +92,10 @@ func (s *Auction) Buy(listingID, buyerID string, qty int) error {
 		return errors.New("listing not found")
 	}
 	if listing.Status != "active" {
-		return errors.New("LISTING_NOT_ACTIVE")
+		return errors.New("Offre plus active")
 	}
 	if qty > listing.Qty {
-		return errors.New("requested quantity exceeds listing quantity")
+		return errors.New("Quantité demandée supérieure au stock")
 	}
 
 	totalPrice := int64(qty) * listing.PricePerUnit
@@ -106,11 +106,11 @@ func (s *Auction) Buy(listingID, buyerID string, qty int) error {
 		return errors.New("buyer not found")
 	}
 	if buyer.Gold < totalPrice {
-		return errors.New("INSUFFICIENT_GOLD")
+		return errors.New("Or insuffisant pour cet achat")
 	}
 
 	if buyerID == listing.SellerID {
-		return errors.New("cannot buy your own listing")
+		return errors.New("Tu ne peux pas acheter ta propre offre")
 	}
 
 	trade := &models.Trade{

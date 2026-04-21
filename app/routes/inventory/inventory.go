@@ -14,7 +14,8 @@ func SetupRouter(g *gin.Engine) {
 	srv := server.GetServer()
 
 	invRepo := repo.NewInventoryRepository(srv.Database)
-	inventoryService := service.New(invRepo)
+	itemRepo := repo.NewItemRepository(srv.Database)
+	inventoryService := service.New(invRepo, itemRepo)
 	inventoryController := controller.New(inventoryService)
 
 	v1 := g.Group("/v1")

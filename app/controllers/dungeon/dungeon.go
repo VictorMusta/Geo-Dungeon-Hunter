@@ -28,6 +28,14 @@ func (ctrl *Dungeon) Create(ctx *gin.Context) {
 		return
 	}
 
+	// Securely set creator from JWT
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, "dungeon.Create.Unauthorized", errors.New("authentication required")))
+		return
+	}
+	in.CreatedBy = playerID.(string)
+
 	d, err := ctrl.DungeonService.Create(&in)
 	if err != nil {
 		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "dungeon.Create.Error", err))
@@ -50,6 +58,16 @@ func (ctrl *Dungeon) Update(ctx *gin.Context) {
 	}
 
 	id := ctx.Param("id")
+	// Ownership check
+	if ok, err := ctrl.checkOwnership(ctx, id); !ok {
+		status := http.StatusForbidden
+		if err.Error() == "dungeon not found" {
+			status = http.StatusNotFound
+		}
+		common.SendResponse(ctx, status, models.KnownError(status, "dungeon.Update.Forbidden", err))
+		return
+	}
+
 	if err := ctrl.DungeonService.Update(id, &in); err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "dungeon not found" {
@@ -73,6 +91,16 @@ func (ctrl *Dungeon) UpdateFull(ctx *gin.Context) {
 	}
 
 	id := ctx.Param("id")
+	// Ownership check
+	if ok, err := ctrl.checkOwnership(ctx, id); !ok {
+		status := http.StatusForbidden
+		if err.Error() == "dungeon not found" {
+			status = http.StatusNotFound
+		}
+		common.SendResponse(ctx, status, models.KnownError(status, "dungeon.UpdateFull.Forbidden", err))
+		return
+	}
+
 	if err := ctrl.DungeonService.UpdateFull(id, &in); err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "dungeon not found" {
@@ -89,6 +117,16 @@ func (ctrl *Dungeon) UpdateFull(ctx *gin.Context) {
 
 func (ctrl *Dungeon) Publish(ctx *gin.Context) {
 	id := ctx.Param("id")
+	// Ownership check
+	if ok, err := ctrl.checkOwnership(ctx, id); !ok {
+		status := http.StatusForbidden
+		if err.Error() == "dungeon not found" {
+			status = http.StatusNotFound
+		}
+		common.SendResponse(ctx, status, models.KnownError(status, "dungeon.Publish.Forbidden", err))
+		return
+	}
+
 	if err := ctrl.DungeonService.Publish(id); err != nil {
 		status := http.StatusBadRequest
 		switch err.Error() {
@@ -187,6 +225,12 @@ func (ctrl *Dungeon) CreateStep(ctx *gin.Context) {
 
 	in.DungeonID = dungeonID
 
+	// Ownership check
+	if ok, err := ctrl.checkOwnership(ctx, dungeonID); !ok {
+		common.SendResponse(ctx, http.StatusForbidden, models.KnownError(http.StatusForbidden, "step.Create.Forbidden", err))
+		return
+	}
+
 	step, err := ctrl.BossStepService.Create(&in)
 	if err != nil {
 		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "step.Create.Error", err))
@@ -210,6 +254,12 @@ func (ctrl *Dungeon) UpdateStep(ctx *gin.Context) {
 		return
 	}
 
+	// Ownership check
+	if ok, err := ctrl.checkOwnership(ctx, dungeonID); !ok {
+		common.SendResponse(ctx, http.StatusForbidden, models.KnownError(http.StatusForbidden, "step.Update.Forbidden", err))
+		return
+	}
+
 	if err := ctrl.BossStepService.Update(dungeonID, stepID, &in); err != nil {
 		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "step.Update.Error", err))
 		return
@@ -220,6 +270,12 @@ func (ctrl *Dungeon) UpdateStep(ctx *gin.Context) {
 
 func (ctrl *Dungeon) ReorderSteps(ctx *gin.Context) {
 	dungeonID := ctx.Param("id")
+
+	// Ownership check
+	if ok, err := ctrl.checkOwnership(ctx, dungeonID); !ok {
+		common.SendResponse(ctx, http.StatusForbidden, models.KnownError(http.StatusForbidden, "step.Reorder.Forbidden", err))
+		return
+	}
 
 	var body struct {
 		Order []string `json:"order" binding:"required"`
@@ -242,6 +298,12 @@ func (ctrl *Dungeon) DeleteStep(ctx *gin.Context) {
 	dungeonID := ctx.Param("id")
 	stepID := ctx.Param("stepId")
 
+	// Ownership check
+	if ok, err := ctrl.checkOwnership(ctx, dungeonID); !ok {
+		common.SendResponse(ctx, http.StatusForbidden, models.KnownError(http.StatusForbidden, "step.Delete.Forbidden", err))
+		return
+	}
+
 	if err := ctrl.BossStepService.Delete(dungeonID, stepID); err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "mongo: no documents in result" {
@@ -252,4 +314,21 @@ func (ctrl *Dungeon) DeleteStep(ctx *gin.Context) {
 	}
 
 	common.SendResponse(ctx, http.StatusOK, models.Success(http.StatusOK, "step.Delete.OK", "step deleted"))
+}
+
+func (ctrl *Dungeon) checkOwnership(ctx *gin.Context, dungeonID string) (bool, error) {
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		return false, errors.New("unauthorized: missing playerID in context")
+	}
+
+	d, err := ctrl.DungeonService.GetByID(dungeonID)
+	if err != nil {
+		return false, err
+	}
+
+	if d.CreatedBy != playerID.(string) {
+		return false, errors.New("forbidden: you do not own this dungeon")
+	}
+	return true, nil
 }

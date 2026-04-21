@@ -18,9 +18,10 @@ func SetupRouter(g *gin.Engine) {
 	dungeonRepo := repo.NewDungeonRepository(srv.Database)
 	bsRepo := repo.NewBossStepRepository(srv.Database)
 	playerRepo := repo.NewPlayerRepository(srv.Database)
+	itemRepo := repo.NewItemRepository(srv.Database)
 
 	// Service
-	runService := service.New(runRepo, dungeonRepo, bsRepo, playerRepo)
+	runService := service.New(runRepo, dungeonRepo, bsRepo, playerRepo, itemRepo)
 	runController := controller.New(runService)
 
 	v1 := g.Group("/v1")

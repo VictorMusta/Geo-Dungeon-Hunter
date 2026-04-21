@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type PlayerRepository struct {
@@ -116,4 +117,14 @@ func (r *PlayerRepository) GetByIDs(ids []string) ([]models.Player, error) {
 		}
 	}
 	return players, nil
+}
+
+func (r *PlayerRepository) EnsureIndexes() error {
+	collection := r.db.Collection("player")
+	indexModel := mongo.IndexModel{
+		Keys:    bson.M{"display_name": 1},
+		Options: options.Index().SetUnique(true),
+	}
+	_, err := collection.Indexes().CreateOne(context.TODO(), indexModel)
+	return err
 }

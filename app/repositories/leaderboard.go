@@ -1,9 +1,9 @@
 package repositories
 
 type LeaderboardEntry struct {
-	PlayerID    string  `json:"playerId"`
-	DisplayName string  `json:"displayName"`
-	Score       float64 `json:"score"`
+	PlayerID    string  `json:"playerId" bson:"playerId"`
+	DisplayName string  `json:"displayName" bson:"displayName"`
+	Score       float64 `json:"score" bson:"score"`
 }
 
 type LeaderboardRepository interface {

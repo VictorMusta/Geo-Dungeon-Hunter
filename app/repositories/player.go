@@ -13,4 +13,5 @@ type PlayerRepository interface {
 	Update(id string, player *models.Player) error
 	Suspend(id string) error
 	FindByDisplayName(name string) (models.Player, error)
+	EnsureIndexes() error
 }

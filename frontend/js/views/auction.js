@@ -1,5 +1,5 @@
 import { API } from '../api.js';
-import { state, navigate, toast } from '../app.js';
+import { state, navigate, toast, confirmModal } from '../app.js';
 
 export const auctionView = {
   auctions: [],
@@ -32,13 +32,7 @@ export const auctionView = {
       this.auctions = (aRes.data || []).filter(a => a.status === 'active');
       this.renderList();
     } catch (e) {
-      if (e.status === 404) {
-        // Normal if there are no auctions yet
-        this.auctions = [];
-        this.renderList();
-      } else {
-        listEl.innerHTML = `<p class="status-msg err">Erreur de chargement du marché</p>`;
-      }
+      listEl.innerHTML = `<p class="status-msg err">Erreur de chargement du marché</p>`;
     }
   },
 
@@ -82,9 +76,15 @@ export const auctionView = {
   },
 
   async buyAuction(id, totalPrice) {
-    if (!confirm(`Acheter cet objet pour ${totalPrice} 💰 ?`)) return;
+    const ok = await confirmModal(
+      "Confirmation d'achat", 
+      `Souhaites-tu vraiment acquérir cet objet pour la modique somme de ${totalPrice} 💰 ?`,
+      "🛒"
+    );
+    if (!ok) return;
+
     try {
-      await API.buyAuction(id, state.playerId);
+      await API.buyAuction(id, state.playerId, 1);
       toast("✅ Achat réussi !");
       this.loadData();
     } catch (e) {
@@ -93,9 +93,15 @@ export const auctionView = {
   },
 
   async cancelAuction(id) {
-    if (!confirm("Retirer cet objet du marché ?")) return;
+    const ok = await confirmModal(
+      "Annuler la vente",
+      "Es-tu certain de vouloir retirer cet objet du marché ? Il retournera dans ton sac.",
+      "❌"
+    );
+    if (!ok) return;
+
     try {
-      await API.cancelAuction(id);
+      await API.cancelAuction(id, state.playerId);
       toast("✅ Vente annulée, obligé retourné dans le sac.");
       this.loadData();
     } catch (e) {

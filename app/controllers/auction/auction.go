@@ -26,6 +26,14 @@ func (ctrl *Auction) CreateListing(ctx *gin.Context) {
 		return
 	}
 
+	// Securely set seller from JWT
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, "listing.Create.Unauthorized", errors.New("authentication required")))
+		return
+	}
+	in.SellerID = playerID.(string)
+
 	listing, err := ctrl.AuctionService.CreateListing(&in)
 	if err != nil {
 		status := http.StatusBadRequest
@@ -59,8 +67,7 @@ func (ctrl *Auction) GetListings(ctx *gin.Context) {
 	}
 
 	if len(listings) == 0 {
-		common.SendResponse(ctx, http.StatusNotFound, models.KnownError(http.StatusNotFound, "listing.Get.NotFound", errors.New("no listings found")))
-		return
+		listings = []models.Listing{}
 	}
 
 	response := &models.WSResponse{
@@ -74,8 +81,8 @@ func (ctrl *Auction) Buy(ctx *gin.Context) {
 	listingID := ctx.Param("id")
 
 	var body struct {
-		BuyerID string `json:"buyerId" binding:"required"`
-		Qty     int    `json:"qty" binding:"required,min=1"`
+		BuyerID string `json:"buyerId"`
+		Qty     int    `json:"qty" binding:"min=0"`
 	}
 
 	if err := ctx.BindJSON(&body); err != nil {
@@ -83,18 +90,31 @@ func (ctrl *Auction) Buy(ctx *gin.Context) {
 		return
 	}
 
+	// Default Qty to 1 if not provided or 0
+	if body.Qty <= 0 {
+		body.Qty = 1
+	}
+
+	// Securely set buyer from JWT
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, "listing.Buy.Unauthorized", errors.New("authentication required")))
+		return
+	}
+	body.BuyerID = playerID.(string)
+
 	if err := ctrl.AuctionService.Buy(listingID, body.BuyerID, body.Qty); err != nil {
 		status := http.StatusBadRequest
 		switch err.Error() {
 		case "listing not found", "buyer not found":
 			status = http.StatusNotFound
-		case "LISTING_NOT_ACTIVE":
+		case "Offre plus active", "LISTING_NOT_ACTIVE":
 			status = http.StatusConflict
-		case "INSUFFICIENT_GOLD":
+		case "Or insuffisant pour cet achat", "INSUFFICIENT_GOLD":
 			status = http.StatusConflict
-		case "cannot buy your own listing":
+		case "Tu ne peux pas acheter ta propre offre":
 			status = http.StatusConflict
-		case "requested quantity exceeds listing quantity":
+		case "Quantité demandée supérieure au stock":
 			status = http.StatusConflict
 		}
 		common.SendResponse(ctx, status, models.KnownError(status, "listing.Buy.Error", err))
@@ -108,13 +128,21 @@ func (ctrl *Auction) Cancel(ctx *gin.Context) {
 	listingID := ctx.Param("id")
 
 	var body struct {
-		SellerID string `json:"sellerId" binding:"required"`
+		SellerID string `json:"sellerId"`
 	}
 
 	if err := ctx.BindJSON(&body); err != nil {
 		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "listing.Cancel.BadRequest", err))
 		return
 	}
+
+	// Securely set seller from JWT
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, "listing.Cancel.Unauthorized", errors.New("authentication required")))
+		return
+	}
+	body.SellerID = playerID.(string)
 
 	if err := ctrl.AuctionService.Cancel(listingID, body.SellerID); err != nil {
 		status := http.StatusBadRequest

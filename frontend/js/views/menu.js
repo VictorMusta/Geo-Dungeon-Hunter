@@ -6,17 +6,14 @@ export const menuView = {
     const nameInput = document.getElementById('menu-name');
     const btnCreate = document.getElementById('menu-create');
     const statusMsg = document.getElementById('menu-status');
+    const loginBox = document.getElementById('menu-login-box');
     const roles = document.getElementById('menu-roles');
 
     if (state.playerId) {
-      nameInput.value = state.playerName || '';
-      nameInput.disabled = true;
-      btnCreate.textContent = '✅ Connecte';
-      btnCreate.disabled = true;
-      statusMsg.textContent = `ID: ${state.playerId}`;
-      statusMsg.className = 'status-msg ok';
+      if (loginBox) loginBox.style.display = 'none';
       roles.style.display = '';
     } else {
+      if (loginBox) loginBox.style.display = 'block';
       nameInput.value = '';
       nameInput.disabled = false;
       btnCreate.textContent = 'Creer mon personnage';
@@ -36,11 +33,11 @@ export const menuView = {
         state.playerName = name;
         state.token = res.token; // Capture the JWT from the response
         
-        statusMsg.textContent = `✅ Cree ! ID: ${res.data.id.slice(0, 8)}...`;
+        statusMsg.textContent = `✅ Cree !`;
         statusMsg.className = 'status-msg ok';
-        nameInput.disabled = true;
-        btnCreate.textContent = '✅ Connecte';
-        roles.style.display = '';
+        
+        // Refresh the view and update global status bar
+        navigate('menu');
       } catch (e) {
         statusMsg.textContent = `❌ ${e.message || 'API indisponible'}`;
         statusMsg.className = 'status-msg err';

@@ -36,7 +36,7 @@ func (r *LeaderboardRepository) GetByCompletions(limit int) ([]repositories.Lead
 		}},
 		bson.M{"$unwind": bson.M{"path": "$playerInfo", "preserveNullAndEmptyArrays": true}},
 		bson.M{"$addFields": bson.M{
-			"displayName": bson.M{"$ifNull": bson.A{"$playerInfo.displayName", "Unknown"}},
+			"displayName": bson.M{"$ifNull": bson.A{"$playerInfo.display_name", "Unknown"}},
 		}},
 		bson.M{"$project": bson.M{"playerInfo": 0}},
 	}
@@ -76,7 +76,7 @@ func (r *LeaderboardRepository) GetByGold(limit int) ([]repositories.Leaderboard
 		if id, ok := doc["customID"].(string); ok {
 			entry.PlayerID = id
 		}
-		if name, ok := doc["displayName"].(string); ok {
+		if name, ok := doc["display_name"].(string); ok {
 			entry.DisplayName = name
 		}
 		switch g := doc["gold"].(type) {
@@ -111,7 +111,7 @@ func (r *LeaderboardRepository) GetBySpeed(dungeonID string, limit int) ([]repos
 		bson.M{"$unwind": bson.M{"path": "$playerInfo", "preserveNullAndEmptyArrays": true}},
 		bson.M{"$project": bson.M{
 			"playerId":    "$playerId",
-			"displayName": bson.M{"$ifNull": bson.A{"$playerInfo.displayName", "Unknown"}},
+			"displayName": bson.M{"$ifNull": bson.A{"$playerInfo.display_name", "Unknown"}},
 			"score":       bson.M{"$divide": bson.A{"$duration", 1000}},
 		}},
 	}

@@ -19,13 +19,14 @@ func New(inventoryService *service.Inventory) *Inventory {
 }
 
 func (ctrl *Inventory) Get(ctx *gin.Context) {
-	playerID := ctx.Query("playerId")
-	if playerID == "" {
-		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusBadRequest, "inventory.Get.BadRequest", errors.New("playerId query parameter is required")))
+	playerID, exists := ctx.Get("playerID")
+	if !exists {
+		common.SendResponse(ctx, http.StatusUnauthorized, models.KnownError(http.StatusUnauthorized, "inventory.Get.Unauthorized", errors.New("authentication required")))
 		return
 	}
+	uid := playerID.(string)
 
-	inv, err := ctrl.InventoryService.GetByPlayerID(playerID)
+	inv, err := ctrl.InventoryService.GetByPlayerID(uid)
 	if err != nil {
 		common.SendResponse(ctx, http.StatusInternalServerError, models.KnownError(http.StatusInternalServerError, "inventory.Get.Error", err))
 		return

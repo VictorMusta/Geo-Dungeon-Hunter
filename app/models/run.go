@@ -3,8 +3,9 @@ package models
 import "time"
 
 type RewardItem struct {
-	ItemID string `bson:"itemId" json:"itemId"`
-	Qty    int    `bson:"qty" json:"qty"`
+	ItemID      string           `bson:"itemId" json:"itemId"`
+	Qty         int              `bson:"qty" json:"qty"`
+	ItemDetails *ItemDefResponse `bson:"itemDetails,omitempty" json:"itemDetails,omitempty"`
 }
 
 type RewardsGiven struct {

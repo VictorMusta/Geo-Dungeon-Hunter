@@ -171,6 +171,14 @@ func (s *Player) Update(ctx *gin.Context) {
 	}
 
 	id := ctx.Param("id")
+
+	// Ownership check
+	playerID, exists := ctx.Get("playerID")
+	if !exists || playerID.(string) != id {
+		common.SendResponse(ctx, http.StatusForbidden, models.KnownError(http.StatusForbidden, "player.Update.Forbidden", errors.New("you can only update your own profile")))
+		return
+	}
+
 	err := s.PlayerService.Update(id, &in)
 	if err != nil {
 		common.SendResponse(ctx, http.StatusBadRequest, models.KnownError(http.StatusInternalServerError, messageTypes.InternalServerError, err))

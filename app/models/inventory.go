@@ -38,8 +38,9 @@ type InventoryResponse struct {
 }
 
 type InventoryItemDTO struct {
-	ItemID string `json:"itemId"`
-	Qty    int64  `json:"qty"`
+	ItemID string           `json:"itemId"`
+	Qty    int64            `json:"qty"`
+	Item   *ItemDefResponse `json:"item,omitempty"`
 }
 
 type ItemDefResponse struct {

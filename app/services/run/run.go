@@ -17,6 +17,7 @@ type Run struct {
 	dungeonRepo repositories.DungeonRepository
 	bsRepo      repositories.BossStepRepository
 	playerRepo  repositories.PlayerRepository
+	itemRepo    repositories.ItemRepository
 	validate    *validator.Validate
 }
 
@@ -25,12 +26,14 @@ func New(
 	dungeonRepo repositories.DungeonRepository,
 	bsRepo repositories.BossStepRepository,
 	playerRepo repositories.PlayerRepository,
+	itemRepo repositories.ItemRepository,
 ) *Run {
 	return &Run{
 		repo:        repo,
 		dungeonRepo: dungeonRepo,
 		bsRepo:      bsRepo,
 		playerRepo:  playerRepo,
+		itemRepo:    itemRepo,
 		validate:    validator.New(),
 	}
 }
@@ -75,7 +78,36 @@ func (s *Run) Create(in *models.Run) (*models.Run, error) {
 }
 
 func (s *Run) GetByID(id string) (models.Run, error) {
-	return s.repo.GetByID(id)
+	r, err := s.repo.GetByID(id)
+	if err != nil {
+		return r, err
+	}
+	s.enrichRun(&r)
+	return r, nil
+}
+
+func (s *Run) enrichRun(r *models.Run) {
+	for i := range r.KilledSteps {
+		s.enrichRewards(&r.KilledSteps[i].RewardsGiven)
+	}
+}
+
+func (s *Run) enrichRewards(rg *models.RewardsGiven) {
+	for i := range rg.Items {
+		item, err := s.itemRepo.GetByID(rg.Items[i].ItemID)
+		if err == nil {
+			rg.Items[i].ItemDetails = &models.ItemDefResponse{
+				ID:          item.CustomID,
+				Name:        item.Name,
+				Type:        item.Type,
+				Rarity:      item.Rarity,
+				Description: item.Description,
+				Tradable:    item.Tradable,
+				BaseValue:   item.BaseValue,
+				Stats:       item.Stats,
+			}
+		}
+	}
 }
 
 func (s *Run) GetByPlayerID(playerID string) ([]models.Run, error) {
@@ -236,6 +268,8 @@ func (s *Run) AttemptBoss(runID, stepID string, lat, lon float64) (*AttemptResul
 			return nil, err
 		}
 	}
+
+	s.enrichRewards(&rewards)
 
 	return &AttemptResult{
 		Success:      true,

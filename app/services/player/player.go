@@ -35,6 +35,12 @@ func (p *Player) Create(in *models.Player) (*models.Player, error) {
 		return nil, err
 	}
 
+	// Check if pseudo already exists
+	_, err = p.repo.FindByDisplayName(in.DisplayName)
+	if err == nil {
+		return nil, errors.New("pseudo déjà utilisé")
+	}
+
 	var player models.Player
 	player.DisplayName = in.DisplayName
 	player.CustomID = functions.NewUUID()

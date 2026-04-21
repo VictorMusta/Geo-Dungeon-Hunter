@@ -1,5 +1,5 @@
 import { API } from '../api.js';
-import { state, navigate, toast } from '../app.js';
+import { state, navigate, toast, confirmModal } from '../app.js';
 import { LeafletMap, haversine } from '../map.js';
 
 const BOSS_EMOJIS = ['🐉', '💀', '🧙', '👹', '🦇', '🕷️', '👻', '🧟', '🐍', '🦂'];
@@ -83,6 +83,9 @@ export const playerRunView = {
     document.getElementById('pr-state').innerHTML =
       `${emoji} ${s.toUpperCase()} · Step ${this.run.currentStep}/${this.steps.length} · ${killedCount} boss tues`;
 
+    // Hide abandon button if completed
+    document.getElementById('pr-abandon').style.display = s === 'completed' ? 'none' : 'block';
+
     const stepDiv = document.getElementById('pr-steps');
     if (!stepDiv) return;
 
@@ -90,10 +93,12 @@ export const playerRunView = {
     let pendingGold = 0;
     const pendingItems = {};
     this.run.killedSteps.forEach(ks => {
-      pendingGold += ks.RewardsGiven.Gold;
-      (ks.RewardsGiven.Items || []).forEach(it => {
-        pendingItems[it.ItemID] = (pendingItems[it.ItemID] || 0) + it.Qty;
-      });
+      if (ks.rewardsGiven) {
+        pendingGold += ks.rewardsGiven.gold || 0;
+        (ks.rewardsGiven.items || []).forEach(it => {
+          pendingItems[it.itemId] = (pendingItems[it.itemId] || 0) + it.qty;
+        });
+      }
     });
 
     const colorAccents = ['var(--acc-magenta)', 'var(--acc-cyan)', 'var(--acc-yellow)', 'var(--acc-orange)', 'var(--acc-purple)'];
@@ -175,14 +180,20 @@ export const playerRunView = {
     try {
       const res = await API.attemptBoss(this.runId, cur.id, this.playerLat, this.playerLon);
       const r = res.data;
-      let txt = `<span style="font-size: 24px; display: block; margin-bottom: 8px;">🔥 VICTOIRE !!! 🔥</span>
-                 <span style="color: var(--acc-yellow); font-size: 20px;">+${r.rewards.gold} 💰</span>`;
-      if (r.rewards.items?.length) txt += '<br>' + r.rewards.items.map(i => `<span class="badge" style="background: var(--acc-cyan); margin: 2px;">${i.qty}x 🎁 ${i.name || 'Objet'}</span>`).join(' ');
-      if (r.runCompleted) txt += '<br><span style="font-family: var(--font-display); font-size: 22px; color: var(--acc-magenta);">🏆 DONJON NETTOYÉ !</span>';
-      this.msg(txt);
+      
       this.spawnParticles(cur);
       await this.reloadRun();
       this.loadGold();
+
+      if (r.runCompleted) {
+        this.msg('🏆 DONJON NETTOYÉ !');
+        this.showVictory(r.rewards); // Pass final boss rewards to popup
+      } else {
+        let lootMsg = `🔥 VICTOIRE !!! +${r.rewards.gold}💰`;
+        if (r.rewards.items?.length) lootMsg += ` (+${r.rewards.items.length} objets)`;
+        toast(lootMsg);
+        this.msg(lootMsg);
+      }
     } catch (e) {
       const m = e.message || JSON.stringify(e);
       if (m.includes('NOT_IN_RANGE')) {
@@ -220,36 +231,50 @@ export const playerRunView = {
     }
   },
 
-  async showVictory() {
+  async showVictory(finalRewards = null) {
     const v = document.getElementById('pr-victory');
     const textEl = document.getElementById('pr-victory-text');
     const rewardsEl = document.getElementById('pr-victory-rewards');
     
     let totalGold = 0;
     const totalItems = {};
+    
+    // Aggregate all loot from run
     this.run.killedSteps.forEach(ks => {
-      totalGold += ks.RewardsGiven.Gold;
-      (ks.RewardsGiven.Items || []).forEach(it => {
-        totalItems[it.ItemID] = (totalItems[it.ItemID] || 0) + it.Qty;
-      });
+      if (ks.rewardsGiven) {
+        totalGold += ks.rewardsGiven.gold || 0;
+        (ks.rewardsGiven.items || []).forEach(it => {
+          if (!totalItems[it.itemId]) {
+            totalItems[it.itemId] = { qty: 0, details: it.itemDetails };
+          }
+          totalItems[it.itemId].qty += it.qty;
+        });
+      }
     });
 
-    textEl.innerHTML = `<span style="color:var(--acc-yellow);">${this.run.killedSteps.length} BOSS VAINCUS !</span><br>Le donjon est nettoyé. 🎉`;
+    textEl.innerHTML = `<span style="color:var(--acc-yellow);">${this.run.killedSteps.length} BOSS VAINCUS !</span><br>Bravo, tu as survécu à l'épreuve. ✨`;
     
     rewardsEl.innerHTML = `
-      <div style="font-size: 14px; color:white; margin-bottom:10px;">Votre butin sécurisé :</div>
-      <div style="display:flex; justify-content:space-between; font-size: 20px; font-weight:900; color:var(--acc-yellow);">
-         <span>💰 TOTAL OR:</span>
+      <div style="font-size: 12px; color:white; opacity:0.6; text-transform:uppercase; margin-bottom:10px; font-weight:900;">Butin total accumulé :</div>
+      <div style="display:flex; justify-content:space-between; font-size: 24px; font-weight:900; color:var(--acc-yellow); margin-bottom: 20px;">
+         <span>💰 OR TOTAL</span>
          <span>${totalGold} G</span>
       </div>
-      <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-         ${Object.entries(totalItems).length ? Object.entries(totalItems).map(([id, qty]) => `
-           <div class="card" style="padding:10px; margin:0; border-color:var(--acc-cyan); display:flex; align-items:center; gap:10px;">
-             <span style="font-size:20px;">🎁</span>
-             <span style="flex:1; font-weight:bold;">Objet ID: ${id}</span>
-             <span class="badge" style="background:var(--acc-cyan);">${qty} unités</span>
-           </div>
-         `).join('') : '<div style="color:#8899aa; font-style:italic; font-size:12px;">Aucun objet trouvé...</div>'}
+      <div style="display:flex; flex-direction:column; gap:8px;">
+         ${Object.entries(totalItems).length ? Object.entries(totalItems).map(([id, data]) => {
+           const info = data.details || { name: 'Objet Inconnu', rarity: 'common', type: 'unknown' };
+           const accent = info.rarity === 'uncommon' ? 'var(--acc-cyan)' : info.rarity === 'rare' ? 'var(--acc-purple)' : info.rarity === 'epic' ? 'var(--acc-magenta)' : info.rarity === 'legendary' ? 'var(--acc-yellow)' : '#8899aa';
+
+           return `
+             <div class="card" style="padding:10px; margin:0; border-color:${accent}; display:flex; align-items:center; gap:12px; background:rgba(0,0,0,0.3);">
+               <span style="font-size:24px;">🎁</span>
+               <div style="flex:1;">
+                  <div style="font-size:10px; opacity:0.5; font-weight:900; text-transform:uppercase;">${info.type}</div>
+                  <div style="font-weight:900; font-size:14px; color:white;" title="ID: ${id}">${info.name}</div>
+               </div>
+               <span class="badge" style="background:${accent}; color:var(--bg); border-radius:4px;">${data.qty}x</span>
+             </div>`;
+         }).join('') : '<div style="color:#8899aa; font-style:italic; font-size:12px; text-align:center;">Aucun objet trouvé dans les décombres...</div>'}
       </div>
     `;
 
@@ -257,7 +282,13 @@ export const playerRunView = {
   },
 
   async abandon() {
-    if (!confirm('💔 Abandonner ? Vous ne garderez que 50% de votre butin accumulé !')) return;
+    const ok = await confirmModal(
+      "Abandonner l'aventure ?",
+      "💔 ATTENTION : En abandonnant maintenant, tu ne récupéreras que 50% du butin accumulé. Es-tu sûr de vouloir fuir ?",
+      "🚩"
+    );
+    if (!ok) return;
+
     try {
       await API.abandonRun(this.runId);
       navigate('player-list');

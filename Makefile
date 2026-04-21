@@ -1,4 +1,4 @@
-.PHONY: help install up down back front test test-integration tidy logs
+.PHONY: help install up down back front test test-integration tidy logs zip
 
 # --- AIDE ---
 help: ## Affiche cette aide
@@ -27,8 +27,15 @@ down: ## Arrête l'infrastructure Docker
 	@echo "🛑 Arrêt de l'infrastructure..."
 	docker compose down
 
-logs: ## Affiche les logs Docker
-	docker compose logs -f
+clear-db: ## Supprime TOUTES les données de la base (Docker Volumes)
+	@echo "⚠️ Suppression des données de la base..."
+	docker compose down -v
+	@echo "🚀 Redémarrage et initialisation de la base..."
+	docker compose up -d mongodb
+	@timeout /t 5 > nul
+	@docker exec dungeons-db mongosh --eval "rs.initiate({_id:'rs0', members:[{_id:0, host:'localhost:27017'}]})" > nul 2>&1 || echo "⚠️ Note: Réinitialisation déjà effectuée ou en cours."
+	@docker compose down
+	@echo "✅ Base de données réinitialisée et prête."
 
 # --- DEVELOPPEMENT ---
 dev: ## Lance TOUT le projet (DB, Backend, Frontend) dans un seul terminal
@@ -62,3 +69,31 @@ fmt: ## Formate le code Go
 
 tidy: ## Nettoie et optimise les modules Go
 	go mod tidy
+
+# --- LIVRAISON ---
+zip: ## Crée l'archive .zip pour le rendu (livre un projet propre et prêt à l'emploi)
+	@echo "📦 Préparation de l'archive de livraison..."
+	@if exist dist rmdir /s /q dist
+	@if exist delivery.zip del delivery.zip
+	@mkdir dist
+	@echo "📂 Copie des fichiers sources..."
+	@xcopy /E /I /Y app dist\app > nul
+	@xcopy /E /I /Y cmd dist\cmd > nul
+	@xcopy /E /I /Y frontend dist\frontend > nul
+	@xcopy /E /I /Y tests dist\tests > nul
+	@xcopy /E /I /Y doc dist\doc > nul
+	@copy go.mod dist\ > nul
+	@copy go.sum dist\ > nul
+	@copy Makefile dist\ > nul
+	@copy README.md dist\ > nul
+	@copy docker-compose.yml dist\ > nul
+	@copy .env dist\ > nul
+	@copy .air.toml dist\ > nul
+	@echo "🧹 Nettoyage des dossiers inutiles..."
+	@if exist dist\frontend\node_modules rmdir /s /q dist\frontend\node_modules
+	@if exist dist\tmp rmdir /s /q dist\tmp
+	@if exist dist\graphify-out rmdir /s /q dist\graphify-out
+	@echo "🤐 Compression en cours (via tar)..."
+	@tar -a -c -f delivery.zip -C dist .
+	@rmdir /s /q dist
+	@echo "✅ Archive 'delivery.zip' créée avec succès ! Elle contient tout le nécessaire pour le correcteur."
